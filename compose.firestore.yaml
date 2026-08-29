@@ -1,0 +1,7 @@
+services:
+  api:
+    environment:
+      SERVICEPILOT_PERSISTENCE_BACKEND: firestore
+      GOOGLE_APPLICATION_CREDENTIALS: /var/run/secrets/google/adc.json
+    volumes:
+      - ${SERVICEPILOT_GOOGLE_CREDENTIALS_FILE:?Set an absolute path to an ADC or service-account JSON file}:/var/run/secrets/google/adc.json:ro

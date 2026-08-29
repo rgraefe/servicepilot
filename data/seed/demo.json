@@ -1,0 +1,60 @@
+{
+  "customers": [
+    {"customer_id": "C-10023", "name": "Max Mustermann", "postal_code": "80331"},
+    {"customer_id": "C-10024", "name": "Aylin Demir", "postal_code": "50667"},
+    {"customer_id": "C-10025", "name": "Sofia Rossi", "postal_code": "70173"},
+    {"customer_id": "C-10026", "name": "Jonas Becker", "postal_code": "20095"},
+    {"customer_id": "C-10027", "name": "Lea Wagner", "postal_code": "04109"}
+  ],
+  "devices": [
+    {"device_id": "D-1007", "customer_id": "C-10023", "model": "HeatPump-X200", "serial_number": "SN-4711"},
+    {"device_id": "D-1008", "customer_id": "C-10023", "model": "ThermoControl-T10", "serial_number": "SN-4712"},
+    {"device_id": "D-1009", "customer_id": "C-10024", "model": "HeatPump-X300", "serial_number": "SN-5821"},
+    {"device_id": "D-1010", "customer_id": "C-10025", "model": "AirHandler-A50", "serial_number": "SN-6104"},
+    {"device_id": "D-1011", "customer_id": "C-10025", "model": "ThermoControl-T10", "serial_number": "SN-6105"},
+    {"device_id": "D-1012", "customer_id": "C-10026", "model": "HeatPump-X200", "serial_number": "SN-7290"},
+    {"device_id": "D-1013", "customer_id": "C-10027", "model": "HeatPump-X300", "serial_number": "SN-8450"},
+    {"device_id": "D-1014", "customer_id": "C-10027", "model": "AirHandler-A50", "serial_number": "SN-8451"}
+  ],
+  "tickets": [
+    {"ticket_id": "T-4711", "customer_id": "C-10023", "device_id": "D-1007", "problem_code": "E37", "description": "Intermittent flow-temperature fault.", "priority": "normal", "status": "technician_assigned"},
+    {"ticket_id": "T-4712", "customer_id": "C-10023", "device_id": "D-1008", "problem_code": "DISPLAY", "description": "Control display occasionally remains dark.", "priority": "low", "status": "resolved"},
+    {"ticket_id": "T-4713", "customer_id": "C-10024", "device_id": "D-1009", "problem_code": "E12", "description": "Low-pressure warning after restart.", "priority": "high", "status": "open"},
+    {"ticket_id": "T-4714", "customer_id": "C-10025", "device_id": "D-1010", "problem_code": "NOISE", "description": "Air handler produces vibration noise.", "priority": "normal", "status": "created"},
+    {"ticket_id": "T-4715", "customer_id": "C-10025", "device_id": "D-1011", "problem_code": "WIFI", "description": "Thermostat cannot join customer network.", "priority": "low", "status": "resolved"},
+    {"ticket_id": "T-4716", "customer_id": "C-10026", "device_id": "D-1012", "problem_code": "E37", "description": "Repeated E37 after filter inspection.", "priority": "high", "status": "technician_assigned"},
+    {"ticket_id": "T-4717", "customer_id": "C-10027", "device_id": "D-1013", "problem_code": "E55", "description": "Outdoor sensor communication failure.", "priority": "urgent", "status": "open"},
+    {"ticket_id": "T-4718", "customer_id": "C-10027", "device_id": "D-1014", "problem_code": "FILTER", "description": "Filter replacement requested.", "priority": "normal", "status": "cancelled"},
+    {"ticket_id": "T-4719", "customer_id": "C-10024", "device_id": "D-1009", "problem_code": "SERVICE", "description": "Annual preventive maintenance.", "priority": "normal", "status": "resolved"},
+    {"ticket_id": "T-4720", "customer_id": "C-10026", "device_id": "D-1012", "problem_code": "PRESSURE", "description": "System pressure decreases overnight.", "priority": "normal", "status": "created"}
+  ],
+  "appointments": [
+    {"appointment_id": "A-0815", "customer_id": "C-10023", "device_id": "D-1007", "status": "scheduled", "start": "2026-09-02T10:00:00+02:00", "end": "2026-09-02T11:00:00+02:00", "slot_id": "S-100"},
+    {"appointment_id": "A-0816", "customer_id": "C-10024", "device_id": "D-1009", "status": "scheduled", "start": "2026-09-03T09:00:00+02:00", "end": "2026-09-03T10:00:00+02:00", "slot_id": "S-103"},
+    {"appointment_id": "A-0817", "customer_id": "C-10025", "device_id": "D-1010", "status": "completed", "start": "2026-08-12T13:00:00+02:00", "end": "2026-08-12T14:00:00+02:00", "slot_id": "S-104"},
+    {"appointment_id": "A-0818", "customer_id": "C-10025", "device_id": "D-1011", "status": "scheduled", "start": "2026-09-04T15:00:00+02:00", "end": "2026-09-04T16:00:00+02:00", "slot_id": "S-105"},
+    {"appointment_id": "A-0819", "customer_id": "C-10026", "device_id": "D-1012", "status": "scheduled", "start": "2026-09-07T08:00:00+02:00", "end": "2026-09-07T09:00:00+02:00", "slot_id": "S-106"},
+    {"appointment_id": "A-0820", "customer_id": "C-10027", "device_id": "D-1013", "status": "cancelled", "start": "2026-08-25T11:00:00+02:00", "end": "2026-08-25T12:00:00+02:00", "slot_id": "S-107"},
+    {"appointment_id": "A-0821", "customer_id": "C-10027", "device_id": "D-1014", "status": "scheduled", "start": "2026-09-08T14:00:00+02:00", "end": "2026-09-08T15:00:00+02:00", "slot_id": "S-108"},
+    {"appointment_id": "A-0822", "customer_id": "C-10023", "device_id": "D-1008", "status": "completed", "start": "2026-07-20T09:00:00+02:00", "end": "2026-07-20T10:00:00+02:00", "slot_id": "S-109"}
+  ],
+  "appointment_slots": [
+    {"slot_id": "S-100", "start": "2026-09-02T10:00:00+02:00", "end": "2026-09-02T11:00:00+02:00", "available": false},
+    {"slot_id": "S-101", "start": "2026-09-09T14:00:00+02:00", "end": "2026-09-09T15:00:00+02:00", "available": true},
+    {"slot_id": "S-102", "start": "2026-09-10T09:00:00+02:00", "end": "2026-09-10T10:00:00+02:00", "available": true},
+    {"slot_id": "S-103", "start": "2026-09-03T09:00:00+02:00", "end": "2026-09-03T10:00:00+02:00", "available": false},
+    {"slot_id": "S-104", "start": "2026-08-12T13:00:00+02:00", "end": "2026-08-12T14:00:00+02:00", "available": false},
+    {"slot_id": "S-105", "start": "2026-09-04T15:00:00+02:00", "end": "2026-09-04T16:00:00+02:00", "available": false},
+    {"slot_id": "S-106", "start": "2026-09-07T08:00:00+02:00", "end": "2026-09-07T09:00:00+02:00", "available": false},
+    {"slot_id": "S-107", "start": "2026-08-25T11:00:00+02:00", "end": "2026-08-25T12:00:00+02:00", "available": true},
+    {"slot_id": "S-108", "start": "2026-09-08T14:00:00+02:00", "end": "2026-09-08T15:00:00+02:00", "available": false},
+    {"slot_id": "S-109", "start": "2026-07-20T09:00:00+02:00", "end": "2026-07-20T10:00:00+02:00", "available": false},
+    {"slot_id": "S-110", "start": "2026-09-11T11:00:00+02:00", "end": "2026-09-11T12:00:00+02:00", "available": true}
+  ],
+  "error_codes": [
+    {"error_code_id": "HeatPump-X200_E37", "model": "HeatPump-X200", "code": "E37", "summary": "Flow temperature outside the expected range.", "customer_action": "Check that air and water paths are unobstructed; do not open the device."},
+    {"error_code_id": "HeatPump-X300_E12", "model": "HeatPump-X300", "code": "E12", "summary": "Refrigerant circuit pressure is too low.", "customer_action": "Switch the unit off and contact service."},
+    {"error_code_id": "HeatPump-X300_E55", "model": "HeatPump-X300", "code": "E55", "summary": "Outdoor temperature sensor communication failed.", "customer_action": "Restart once; contact service if the code returns."},
+    {"error_code_id": "AirHandler-A50_F02", "model": "AirHandler-A50", "code": "F02", "summary": "Airflow is restricted.", "customer_action": "Inspect accessible filters and vents."}
+  ]
+}

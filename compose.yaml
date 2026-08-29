@@ -1,0 +1,49 @@
+name: servicepilot
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        INSTALL_DEV: "true"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SERVICEPILOT_ENVIRONMENT: ${SERVICEPILOT_ENVIRONMENT:-development}
+      SERVICEPILOT_LOG_LEVEL: ${SERVICEPILOT_LOG_LEVEL:-INFO}
+      SERVICEPILOT_PERSISTENCE_BACKEND: ${SERVICEPILOT_PERSISTENCE_BACKEND:-memory}
+      SERVICEPILOT_FIRESTORE_PROJECT: ${SERVICEPILOT_FIRESTORE_PROJECT:-}
+      SERVICEPILOT_FIRESTORE_DATABASE: ${SERVICEPILOT_FIRESTORE_DATABASE:-(default)}
+      SERVICEPILOT_HOST: 0.0.0.0
+      SERVICEPILOT_PORT: 8000
+      PYTHONPATH: /app
+    ports:
+      - "${SERVICEPILOT_PORT:-8000}:8000"
+    volumes:
+      - ./app:/app/app
+      - ./data:/app/data:ro
+      - ./scripts:/app/scripts:ro
+      - ./tests:/app/tests
+    command:
+      - sh
+      - -c
+      - >-
+        if [ "${SERVICEPILOT_RELOAD:-true}" = "true" ]; then
+          exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload;
+        else
+          exec uvicorn app.main:app --host 0.0.0.0 --port 8000;
+        fi
+    init: true
+    stop_grace_period: 10s
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
