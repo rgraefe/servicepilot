@@ -20,6 +20,28 @@ responses are JSON arrays. All failures use a structured `error` object with
 availability failures use HTTP 503 with `PERSISTENCE_UNAVAILABLE` and
 `retryable: true`; provider details are not returned to callers.
 
+## Phase 5 Dialogflow mapping
+
+`conversation/servicepilot-openapi.json` exposes the existing HTTP contracts as
+the authenticated `ServicePilotBackend` OpenAPI tool. The server URL in source is
+a non-routable placeholder and is replaced with the canonical Cloud Run URL only
+during deployment. Authentication is configured outside the OpenAPI document as
+Dialogflow service-agent `ID_TOKEN`; the schema contains no credentials.
+
+| Tool action | HTTP operation | Phase 5 caller |
+| --- | --- | --- |
+| `get_customer` | `GET /customers/{customer_id}` | ServiceTicket |
+| `get_ticket` | `GET /tickets/{ticket_id}` | ServiceTicket |
+| `create_ticket` | `POST /tickets` | ServiceTicket after explicit confirmation |
+| `get_appointments` | `GET /customers/{customer_id}/appointments` | AppointmentManagement |
+| `list_available_slots` | `GET /appointments/available-slots` | AppointmentManagement |
+| `reschedule_appointment` | `PUT /appointments/{appointment_id}` | Reserved for Phase 6 flow |
+
+List operations return JSON arrays because they map directly to the FastAPI
+contracts. An empty array is a successful result with no matching records. Any
+non-2xx response remains a structured failure and must not be interpreted as
+successful tool output.
+
 ---
 
 ## get_customer
@@ -130,6 +152,40 @@ Errors:
 
 ---
 
+## get_appointments
+
+Input:
+
+```json
+{
+  "customer_id": "C-10023"
+}
+```
+
+HTTP/tool output:
+
+```json
+[
+  {
+    "appointment_id": "A-0815",
+    "customer_id": "C-10023",
+    "device_id": "D-1007",
+    "status": "scheduled",
+    "start": "2026-09-02T10:00:00+02:00",
+    "end": "2026-09-02T11:00:00+02:00",
+    "slot_id": "S-100"
+  }
+]
+```
+
+Errors:
+
+- CUSTOMER_NOT_FOUND
+- VALIDATION_ERROR
+- PERSISTENCE_UNAVAILABLE
+
+---
+
 ## list_available_slots
 
 Input:
@@ -142,18 +198,17 @@ Input:
 }
 ```
 
-Output:
+HTTP/tool output:
 
 ```json
-{
-  "slots": [
-    {
-      "slot_id": "S-101",
-      "start": "2026-08-19T14:00:00+02:00",
-      "end": "2026-08-19T15:00:00+02:00"
-    }
-  ]
-}
+[
+  {
+    "slot_id": "S-101",
+    "start": "2026-08-19T14:00:00+02:00",
+    "end": "2026-08-19T15:00:00+02:00",
+    "available": true
+  }
+]
 ```
 
 ---

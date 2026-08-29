@@ -1,0 +1,505 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ServicePilot Conversational Backend",
+    "version": "0.5.0",
+    "description": "Deterministic ServicePilot operations for Dialogflow CX. Business errors use non-2xx responses with a structured error envelope."
+  },
+  "servers": [
+    {
+      "url": "https://servicepilot-api.invalid"
+    }
+  ],
+  "paths": {
+    "/customers/{customer_id}": {
+      "get": {
+        "operationId": "get_customer",
+        "summary": "Retrieve one canonical customer",
+        "description": "Use only with an explicitly supplied customer ID. A returned customer confirms that the record exists; it does not by itself authorize access to another customer's records.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CustomerId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    },
+    "/tickets/{ticket_id}": {
+      "get": {
+        "operationId": "get_ticket",
+        "summary": "Retrieve one canonical service ticket",
+        "description": "Use only when the customer supplied a ticket ID. Never infer ticket status from the identifier or prior conversation text.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TicketId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    },
+    "/tickets": {
+      "post": {
+        "operationId": "create_ticket",
+        "summary": "Create one validated service ticket",
+        "description": "Call exactly once and only after the customer has confirmed the complete proposed ticket. Report success only from the returned canonical ticket.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Canonical created ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ticket"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/BusinessConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    },
+    "/customers/{customer_id}/appointments": {
+      "get": {
+        "operationId": "get_appointments",
+        "summary": "List canonical appointments for one customer",
+        "description": "Use only after the customer ID is available. The backend validates that the customer exists before returning the customer's appointments.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CustomerId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical appointment list; an empty array means no appointments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    },
+    "/appointments/available-slots": {
+      "get": {
+        "operationId": "list_available_slots",
+        "summary": "List currently available appointment slots",
+        "description": "Return only backend-confirmed available slots for the inclusive date range. Never invent a slot when the array is empty or the call fails.",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Identifier"
+            }
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "to_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical available-slot list; an empty array means no matching slots",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppointmentSlot"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    },
+    "/appointments/{appointment_id}": {
+      "put": {
+        "operationId": "reschedule_appointment",
+        "summary": "Perform one confirmed appointment reschedule",
+        "description": "Reserved for the deterministic Phase 6 transaction flow. Do not call directly from the Phase 5 generative playbook. The backend still requires confirmed=true and validates ownership, state, and slot availability.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppointmentId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppointmentReschedule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canonical updated appointment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/BusinessConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "CustomerId": {
+        "name": "customer_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
+      "TicketId": {
+        "name": "ticket_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
+      "AppointmentId": {
+        "name": "appointment_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Requested record does not exist",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "BusinessConflict": {
+        "description": "A deterministic business rule rejected the operation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Input failed schema validation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "PersistenceUnavailable": {
+        "description": "Persistence is temporarily unavailable; do not report success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Identifier": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+      },
+      "Customer": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["customer_id", "name", "postal_code"],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "name": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string",
+            "pattern": "^[0-9]{5}$"
+          }
+        }
+      },
+      "TicketCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["customer_id", "device_id", "problem_code", "description"],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "problem_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "normal", "high", "urgent"],
+            "default": "normal"
+          }
+        }
+      },
+      "Ticket": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TicketCreate"
+          },
+          {
+            "type": "object",
+            "required": ["ticket_id", "status"],
+            "properties": {
+              "ticket_id": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["created", "open", "technician_assigned", "resolved", "cancelled"]
+              }
+            }
+          }
+        ]
+      },
+      "Appointment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["appointment_id", "customer_id", "device_id", "status", "start", "end", "slot_id"],
+        "properties": {
+          "appointment_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "customer_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "device_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["scheduled", "completed", "cancelled"]
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "slot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        }
+      },
+      "AppointmentSlot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slot_id", "start", "end", "available"],
+        "properties": {
+          "slot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AppointmentReschedule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["customer_id", "slot_id", "confirmed"],
+        "properties": {
+          "customer_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "slot_id": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Must be true; false is rejected with CONFIRMATION_REQUIRED."
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "message", "retryable"],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

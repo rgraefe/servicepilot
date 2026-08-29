@@ -44,6 +44,13 @@ They do not replace Dialogflow simulator tests: after deploying the catalog, run
 representative messages in isolated sessions and inspect the selected playbook
 and retained invocation summary. Backend tool assertions begin in Phase 5.
 
+Phase 5 validates the conversational OpenAPI document against the real FastAPI
+route table, exact operation IDs, structured non-2xx responses, private Cloud Run
+authentication configuration, and playbook tool boundaries. Tool examples cover
+successful reads, confirmed writes, not-found errors, empty lists, and the rule
+that appointment rescheduling is not called generatively before Phase 6. Live
+acceptance tests use fresh Dialogflow sessions and canonical seeded identifiers.
+
 ---
 
 ## Minimum Golden Conversations

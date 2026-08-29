@@ -84,6 +84,12 @@ ServicePilot currently needs no application secret for its core API. Secret
 mappings exist for later authenticated integrations and must only be added when a
 consumer is implemented.
 
+Phase 5 does not use a shared secret for Dialogflow. Its tool deployment grants
+`roles/run.invoker` directly to
+`service-PROJECT_NUMBER@gcp-sa-dialogflow.iam.gserviceaccount.com` and configures
+Dialogflow to send a Google-signed ID token. Keep the Cloud Run service private;
+do not grant `allUsers` access.
+
 ## Build and deploy
 
 Run the complete containerized tests first:

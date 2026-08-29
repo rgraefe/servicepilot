@@ -79,6 +79,21 @@ Examples:
 - reschedule_appointment
 - create_handover
 
+Phase 5 packages the initial six backend operations as one Dialogflow OpenAPI
+tool named `ServicePilotBackend`; each operation retains a narrow `operationId`
+and the existing deterministic HTTP contract. The schema is version controlled in
+`conversation/servicepilot-openapi.json`. Dialogflow authenticates to the private
+Cloud Run service with an ID token issued for its Google-managed service agent,
+which is the only new `roles/run.invoker` principal granted by the tool deployment.
+No bearer token, API key, service-account key, or application secret is stored in
+the agent configuration.
+
+ServiceTicket may use `get_customer`, `get_ticket`, and `create_ticket`.
+AppointmentManagement may use `get_appointments` and `list_available_slots`.
+Although `reschedule_appointment` is described in the OpenAPI tool, the generative
+playbook is explicitly forbidden from calling it in Phase 5. Phase 6 will invoke
+that action from a deterministic confirmation flow.
+
 ### Backend Layer
 
 Python/FastAPI service deployed to Google Cloud Run.
@@ -149,7 +164,9 @@ Initial implementation may use Google managed Data Stores.
 
 The Dialogflow CX agent uses German as its default language, `Europe/Berlin` as
 its time zone, and `europe-west3` as its location.
-`scripts/deploy-conversational-agent.ps1` idempotently applies DefaultService,
+`scripts/deploy-conversational-tools.ps1` first synchronizes the authenticated
+OpenAPI tool and its Cloud Run invoker binding. Then
+`scripts/deploy-conversational-agent.ps1` applies DefaultService,
 specialist playbooks, prompts, routing references, and examples from the catalog,
 then assigns DefaultService as `startPlaybook`. A local deterministic routing
 contract provides fast CI feedback but is never used as the production

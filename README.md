@@ -1,9 +1,9 @@
 # ServicePilot
 
 ServicePilot is a production-oriented customer-service backend that keeps business
-transactions deterministic while remaining ready for later conversational-agent
-integration. Phase 2 supports both application-scoped in-memory repositories and
-Google Cloud Firestore behind the same service-layer interfaces.
+transactions deterministic while integrating with Dialogflow CX through
+authenticated OpenAPI tools. It supports both application-scoped in-memory
+repositories and Google Cloud Firestore behind the same service-layer interfaces.
 
 ## Prerequisites
 
@@ -167,11 +167,12 @@ Preview a deployment:
 
 ## Conversational agent
 
-Phase 4 defines five version-controlled Dialogflow CX playbooks in
+Phases 4 and 5 define five version-controlled Dialogflow CX playbooks in
 `conversation/catalog.json`: DefaultService, KnowledgeSupport, ServiceTicket,
 AppointmentManagement, and ComplaintManagement. DefaultService routes and
-delegates; it does not execute business logic. The specialist playbooks establish
-safe conversational behavior before Phase 5 connects backend tools.
+delegates; it does not execute business logic. `ServicePilotBackend` exposes six
+deterministic operations from `conversation/servicepilot-openapi.json` and calls
+the private Cloud Run service with a Dialogflow service-agent ID token.
 
 Run the routing contract tests inside Docker:
 
@@ -179,12 +180,19 @@ Run the routing contract tests inside Docker:
 docker compose run --rm api pytest tests/conversation
 ```
 
-After creating a playbook-first `ServicePilot` agent in `europe-west3`, apply the
-catalog with:
+After creating a playbook-first `ServicePilot` agent in `europe-west3`, deploy the
+tool and its Cloud Run invoker binding first:
+
+```powershell
+./scripts/deploy-conversational-tools.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID -CloudRunServiceName servicepilot-api
+```
+
+Then apply the tool-aware playbook catalog:
 
 ```powershell
 ./scripts/deploy-conversational-agent.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID
 ```
 
 See [docs/CONVERSATIONAL_AGENT.md](docs/CONVERSATIONAL_AGENT.md) for one-time
-agent creation, deployment, routing acceptance cases, and the Phase 4/5 boundary.
+agent creation, authenticated tool deployment, routing acceptance cases, and the
+Phase 5/6 transaction boundary.

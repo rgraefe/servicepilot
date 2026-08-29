@@ -3,8 +3,8 @@
 ## Phase 4 scope
 
 Phase 4 defines the ServicePilot conversational architecture as version-controlled
-Dialogflow CX playbooks. It deliberately does not connect backend or data-store
-tools; those integrations belong to Phases 5 and 7. This separation lets routing,
+Dialogflow CX playbooks. Phase 5 adds the backend OpenAPI tool while managed
+data-store integration still belongs to Phase 7. This separation lets routing,
 delegation, safety boundaries, and failure behavior be reviewed before an LLM can
 read or mutate business data.
 
@@ -66,7 +66,37 @@ Enable the Dialogflow API once:
 gcloud services enable dialogflow.googleapis.com --project=servicepilot-development
 ```
 
-## Deploy playbooks
+## Deploy backend tools and playbooks
+
+Phase 5 requires the private Cloud Run service to use ingress `all` unless an
+organization-specific Service Directory path is configured. `all` does not make
+the service public: Cloud Run IAM still rejects callers without a valid invoker
+identity.
+
+Preview and apply the tool plus least-privilege invoker binding first:
+
+```powershell
+./scripts/deploy-conversational-tools.ps1 `
+  -ProjectId servicepilot-development `
+  -Region europe-west3 `
+  -AgentId YOUR_AGENT_UUID `
+  -CloudRunServiceName servicepilot-api `
+  -WhatIf
+
+./scripts/deploy-conversational-tools.ps1 `
+  -ProjectId servicepilot-development `
+  -Region europe-west3 `
+  -AgentId YOUR_AGENT_UUID `
+  -CloudRunServiceName servicepilot-api
+```
+
+The script resolves the canonical Cloud Run URL, grants `roles/run.invoker` to
+the Google-managed Dialogflow service agent, injects the URL into the OpenAPI
+schema in memory, and creates or updates `ServicePilotBackend` with service-agent
+ID-token authentication. It creates an immutable tool version only when no
+identical schema/authentication version exists. No credential is written to disk.
+
+Then preview the playbook change:
 
 Preview the change:
 
@@ -87,12 +117,13 @@ Apply it:
   -AgentId YOUR_AGENT_UUID
 ```
 
-The script converges resources by display name. It creates missing specialist and
+The playbook script converges resources by display name. It requires
+`ServicePilotBackend` to exist, creates missing specialist and
 DefaultService playbooks, updates existing prompts, assigns DefaultService as the
 agent's `startPlaybook`, and synchronizes named examples. Dialogflow appends the
 repeated `actions` field during an example PATCH, so the script replaces an
 existing named example before recreating its ordered actions. It does not create
-tools, flows, data stores, service-account keys, or secrets.
+flows, data stores, service-account keys, or secrets.
 
 ## Routing acceptance checks
 
@@ -114,8 +145,9 @@ Then use the Dialogflow simulator with a new session for each representative cas
 | `Meine Anlage zeigt E37 und ich möchte wissen, ob der Techniker morgen kommt.` | AppointmentManagement, retaining E37 context |
 | `Ich brauche Hilfe.` | DefaultService asks one clarification question |
 
-The specialists intentionally do not claim a successful lookup or write in Phase 4.
-Such a claim would be fabricated until Phase 5 attaches authenticated backend tools.
+In Phase 5, specialists may report canonical read results and explicitly confirmed
+ticket creation only after successful tool output. Appointment rescheduling remains
+deferred to Phase 6.
 
 ## Change workflow
 

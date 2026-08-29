@@ -120,6 +120,16 @@ Exit criterion:
 - agent calls backend
 - missing records and validation failures are handled safely
 
+Implementation note: Phase 5 publishes a version-controlled OpenAPI 3.0 tool
+covering the six operations above. Dialogflow calls the private Cloud Run service
+with a Google-signed service-agent ID token; the deployment grants only that
+service agent `roles/run.invoker`. ServiceTicket uses customer and ticket reads
+plus confirmed ticket creation. AppointmentManagement uses appointment and slot
+reads. `reschedule_appointment` is present in the tool contract but remains
+forbidden to the generative playbook until the deterministic Phase 6 flow owns it.
+Structured 4xx/5xx backend errors are treated as failures, never as successful
+tool results.
+
 ---
 
 ## Phase 6 – Deterministic Transaction Flow

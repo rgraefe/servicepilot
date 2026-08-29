@@ -23,7 +23,7 @@ def catalog() -> dict:
 
 
 def test_catalog_defines_phase_four_agent(catalog: dict) -> None:
-    assert catalog["schema_version"] == 1
+    assert catalog["schema_version"] == 2
     assert catalog["agent"] == {
         "display_name": "ServicePilot",
         "default_language_code": "de",
@@ -87,9 +87,18 @@ def test_all_example_routes_reference_known_playbooks(catalog: dict) -> None:
     for playbook in catalog["playbooks"]:
         for example in playbook["examples"]:
             assert example["state"] in {"OK", "PENDING", "ESCALATED", "FAILED", "CANCELLED"}
-            assert ("route_to" in example) != ("agent" in example)
             if "route_to" in example:
                 assert example["route_to"] in EXPECTED_PLAYBOOKS
+                assert "tool" not in example
+                assert "agent" not in example
+            elif "tool" in example:
+                assert example["tool"]["name"] == "ServicePilotBackend"
+                assert example["tool"]["action"]
+                assert isinstance(example["tool"]["input"], dict)
+                assert isinstance(example["tool"]["output"], (dict, list))
+                assert example.get("agent")
+            else:
+                assert example.get("agent")
 
 
 def test_default_routing_examples_carry_invocation_context(catalog: dict) -> None:
@@ -113,7 +122,54 @@ def test_golden_route_contract(utterance: str, expected_playbook: str) -> None:
     assert select_playbook(utterance) == expected_playbook
 
 
-def test_phase_four_does_not_bind_phase_five_tools(catalog: dict) -> None:
-    serialized = json.dumps(catalog, ensure_ascii=False)
-    assert "${TOOL:" not in serialized
-    assert "Phase 5" in serialized
+def test_phase_five_binds_tools_only_to_responsible_playbooks(catalog: dict) -> None:
+    instructions = {
+        playbook["name"]: "\n".join(playbook["instructions"])
+        for playbook in catalog["playbooks"]
+    }
+
+    assert "${TOOL: ServicePilotBackend}" in instructions["ServiceTicket"]
+    assert "${TOOL: ServicePilotBackend}" in instructions["AppointmentManagement"]
+    assert "${TOOL:" not in instructions["DefaultService"]
+    assert "${TOOL:" not in instructions["KnowledgeSupport"]
+    assert "${TOOL:" not in instructions["ComplaintManagement"]
+    tool_bindings = {
+        playbook["name"]: playbook.get("tools", [])
+        for playbook in catalog["playbooks"]
+    }
+    assert tool_bindings["ServiceTicket"] == ["ServicePilotBackend"]
+    assert tool_bindings["AppointmentManagement"] == ["ServicePilotBackend"]
+    assert not tool_bindings["DefaultService"]
+    assert not tool_bindings["KnowledgeSupport"]
+    assert not tool_bindings["ComplaintManagement"]
+
+
+def test_phase_five_tool_examples_cover_reads_writes_and_errors(catalog: dict) -> None:
+    tool_examples = [
+        example
+        for playbook in catalog["playbooks"]
+        for example in playbook["examples"]
+        if "tool" in example
+    ]
+    actions = {example["tool"]["action"] for example in tool_examples}
+
+    assert {
+        "get_customer",
+        "get_ticket",
+        "create_ticket",
+        "get_appointments",
+        "list_available_slots",
+    } <= actions
+    assert any("error" in example["tool"]["output"] for example in tool_examples)
+    confirmed_write = next(
+        example for example in tool_examples if example["tool"]["action"] == "create_ticket"
+    )
+    assert "not yet confirmed" in confirmed_write["input_summary"]
+    assert confirmed_write["agent_before_user"]
+    assert confirmed_write["user"].startswith("Ja")
+    assert set(confirmed_write["tool"]["input"]) == {"requestBody"}
+    assert "reschedule_appointment" not in actions
+    appointment = next(
+        item for item in catalog["playbooks"] if item["name"] == "AppointmentManagement"
+    )
+    assert "niemals direkt" in " ".join(appointment["instructions"])
