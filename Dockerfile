@@ -13,6 +13,7 @@ RUN addgroup --system servicepilot \
 
 COPY pyproject.toml README.md ./
 COPY app ./app
+COPY conversation ./conversation
 COPY data ./data
 RUN python -m pip install --upgrade pip \
     && if [ "$INSTALL_DEV" = "true" ]; then python -m pip install '.[test]'; else python -m pip install .; fi

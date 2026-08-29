@@ -48,6 +48,20 @@ Components:
 - Complaint Management Playbook
 - deterministic CX Flows for transactional operations
 
+Phase 4 stores this design in `conversation/catalog.json`. DefaultService is a
+routine entry-point playbook and owns only greeting, clarification, routing, and
+multi-intent prioritization. The four specialists are task playbooks. Complaints
+and explicit human requests have highest routing precedence; otherwise the
+explicitly requested outcome determines the first delegation and remaining
+concerns are preserved in the invocation summary.
+
+Every playbook defines goal, scope, ordered instructions, tool-use constraints,
+failure behavior, escalation behavior, and at least four German examples. The
+Phase 4 catalog contains no tool references: backend tools are attached in Phase 5,
+the deterministic rescheduling flow in Phase 6, and managed knowledge in Phase 7.
+This prevents a routing-only agent from fabricating tool results during staged
+delivery.
+
 ### Tool Layer
 
 The conversational layer accesses business capabilities through explicit tools.
@@ -130,6 +144,16 @@ names are excluded. A valid Cloud Trace header is correlated through
 Technical manuals, warranty information, FAQs, service procedures, and error-code documentation.
 
 Initial implementation may use Google managed Data Stores.
+
+### Conversational configuration lifecycle
+
+The Dialogflow CX agent uses German as its default language, `Europe/Berlin` as
+its time zone, and `europe-west3` as its location.
+`scripts/deploy-conversational-agent.ps1` idempotently applies DefaultService,
+specialist playbooks, prompts, routing references, and examples from the catalog,
+then assigns DefaultService as `startPlaybook`. A local deterministic routing
+contract provides fast CI feedback but is never used as the production
+conversational router.
 
 ---
 

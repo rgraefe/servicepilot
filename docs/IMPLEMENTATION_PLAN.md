@@ -92,6 +92,14 @@ Exit criterion:
 
 - chat-based conversations route correctly
 
+Implementation note: Phase 4 defines a German, playbook-first Dialogflow CX agent
+as a version-controlled catalog. DefaultService is a routine router and delegates
+to four narrowly scoped task playbooks. All playbooks include explicit safety,
+failure, escalation, and tool-boundary rules plus at least four examples. Golden
+route tests cover single intent, multi-intent, ambiguity, complaints, and explicit
+human requests. An idempotent deployment script applies the catalog to an existing
+playbook-first Conversational Agent without introducing Phase 5 tools.
+
 ---
 
 ## Phase 5 – Tool Integration

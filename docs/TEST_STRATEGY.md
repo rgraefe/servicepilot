@@ -37,6 +37,13 @@ Cloud Run deployment.
 
 Maintain golden conversations covering expected agent behavior.
 
+Phase 4 adds a version-controlled German routing corpus and validates it against
+a deterministic ownership contract in Docker. These fast checks cover every
+specialist, default clarification, routing precedence, and multi-intent cases.
+They do not replace Dialogflow simulator tests: after deploying the catalog, run
+representative messages in isolated sessions and inspect the selected playbook
+and retained invocation summary. Backend tool assertions begin in Phase 5.
+
 ---
 
 ## Minimum Golden Conversations

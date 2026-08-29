@@ -164,3 +164,27 @@ Preview a deployment:
 ```powershell
 ./scripts/deploy-cloud-run.ps1 -ProjectId your-project-id -Region europe-west3 -ServiceName servicepilot-api -RuntimeServiceAccount servicepilot-runtime@your-project-id.iam.gserviceaccount.com -WhatIf
 ```
+
+## Conversational agent
+
+Phase 4 defines five version-controlled Dialogflow CX playbooks in
+`conversation/catalog.json`: DefaultService, KnowledgeSupport, ServiceTicket,
+AppointmentManagement, and ComplaintManagement. DefaultService routes and
+delegates; it does not execute business logic. The specialist playbooks establish
+safe conversational behavior before Phase 5 connects backend tools.
+
+Run the routing contract tests inside Docker:
+
+```bash
+docker compose run --rm api pytest tests/conversation
+```
+
+After creating a playbook-first `ServicePilot` agent in `europe-west3`, apply the
+catalog with:
+
+```powershell
+./scripts/deploy-conversational-agent.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID
+```
+
+See [docs/CONVERSATIONAL_AGENT.md](docs/CONVERSATIONAL_AGENT.md) for one-time
+agent creation, deployment, routing acceptance cases, and the Phase 4/5 boundary.
