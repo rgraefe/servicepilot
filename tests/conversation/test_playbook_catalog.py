@@ -92,7 +92,10 @@ def test_all_example_routes_reference_known_playbooks(catalog: dict) -> None:
                 assert "tool" not in example
                 assert "agent" not in example
             elif "tool" in example:
-                assert example["tool"]["name"] == "ServicePilotBackend"
+                assert example["tool"]["name"] in {
+                    "ServicePilotBackend",
+                    "ServicePilotKnowledge",
+                }
                 assert example["tool"]["action"]
                 assert isinstance(example["tool"]["input"], dict)
                 assert isinstance(example["tool"]["output"], (dict, list))
@@ -127,7 +130,7 @@ def test_golden_route_contract(utterance: str, expected_playbook: str) -> None:
     assert select_playbook(utterance) == expected_playbook
 
 
-def test_phase_five_binds_tools_only_to_responsible_playbooks(catalog: dict) -> None:
+def test_tools_are_bound_only_to_responsible_playbooks(catalog: dict) -> None:
     instructions = {
         playbook["name"]: "\n".join(playbook["instructions"])
         for playbook in catalog["playbooks"]
@@ -136,7 +139,7 @@ def test_phase_five_binds_tools_only_to_responsible_playbooks(catalog: dict) -> 
     assert "${TOOL: ServicePilotBackend}" in instructions["ServiceTicket"]
     assert "${TOOL: ServicePilotBackend}" in instructions["AppointmentManagement"]
     assert "${TOOL:" not in instructions["DefaultService"]
-    assert "${TOOL:" not in instructions["KnowledgeSupport"]
+    assert "${TOOL: ServicePilotKnowledge}" in instructions["KnowledgeSupport"]
     assert "${TOOL:" not in instructions["ComplaintManagement"]
     tool_bindings = {
         playbook["name"]: playbook.get("tools", [])
@@ -145,7 +148,7 @@ def test_phase_five_binds_tools_only_to_responsible_playbooks(catalog: dict) -> 
     assert tool_bindings["ServiceTicket"] == ["ServicePilotBackend"]
     assert tool_bindings["AppointmentManagement"] == ["ServicePilotBackend"]
     assert not tool_bindings["DefaultService"]
-    assert not tool_bindings["KnowledgeSupport"]
+    assert tool_bindings["KnowledgeSupport"] == ["ServicePilotKnowledge"]
     assert not tool_bindings["ComplaintManagement"]
 
 

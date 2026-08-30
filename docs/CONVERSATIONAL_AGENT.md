@@ -3,9 +3,9 @@
 ## Phase 4 scope
 
 Phase 4 defines the ServicePilot conversational architecture as version-controlled
-Dialogflow CX playbooks. Phase 5 adds the backend OpenAPI tool and Phase 6 adds a
-deterministic appointment-rescheduling flow. Managed data-store integration still
-belongs to Phase 7.
+Dialogflow CX playbooks. Phase 5 adds the backend OpenAPI tool, Phase 6 adds a
+deterministic appointment-rescheduling flow, and Phase 7 connects
+KnowledgeSupport to managed Agent Search through a Data Store tool.
 
 The source of truth is `conversation/catalog.json`. It contains:
 
@@ -137,13 +137,20 @@ Apply it:
 
 The flow script converges the two confirmation intents, authenticated flexible
 webhook, deterministic flow, and confirmation/verification pages by display name.
-The playbook script requires both `ServicePilotBackend` and
+The playbook script requires `ServicePilotBackend`, `ServicePilotKnowledge`, and
 `AppointmentReschedule`, creates missing specialist and DefaultService playbooks,
 updates prompts and references, assigns DefaultService as the agent's
 `startPlaybook`, and synchronizes named examples. Dialogflow appends the repeated
 `actions` field during an example PATCH, so the script replaces an existing named
 example before recreating its ordered actions. Neither script creates data stores,
-service-account keys, or secrets.
+service-account keys, or secrets. `deploy-knowledge-rag.ps1` separately creates
+the managed data store, imports the five approved PDFs, and converges the
+`ServicePilotKnowledge` tool.
+
+KnowledgeSupport searches for every technical, error-code, manual, warranty, and
+FAQ answer. It cites the title and section (plus URI when returned), asks for the
+model when codes conflict, and treats empty or fallback results as unknown rather
+than filling gaps from model knowledge.
 
 ## Routing acceptance checks
 

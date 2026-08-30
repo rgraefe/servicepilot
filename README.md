@@ -205,3 +205,41 @@ See [docs/CONVERSATIONAL_AGENT.md](docs/CONVERSATIONAL_AGENT.md) for one-time
 agent creation, authenticated tool deployment, routing acceptance cases, and the
 Phase 5/6 transaction boundary. Always deploy in the order shown above: tool,
 flow, then playbooks.
+
+### Managed knowledge / RAG
+
+Phase 7 provides five original German demo manuals in `data/knowledge`. Their
+Markdown heading tree is preserved in the PDFs and in Google Agent Search through
+Layout Parser chunking with ancestor headings. This is the managed equivalent of
+child-chunk retrieval with parent-section expansion; no local vector database is
+required.
+
+Rebuild the PDFs after editing a source document (the builder uses ReportLab):
+
+```powershell
+python ./scripts/build-knowledge-documents.py
+```
+
+Preview the cloud changes:
+
+```powershell
+./scripts/deploy-knowledge-rag.ps1 -ProjectId servicepilot-development -AgentRegion europe-west3 -AgentId YOUR_AGENT_UUID -WhatIf
+```
+
+Deploy the Cloud Storage corpus, `eu` Agent Search data store, and
+`ServicePilotKnowledge` Dialogflow tool, then redeploy the playbooks:
+
+```powershell
+./scripts/deploy-knowledge-rag.ps1 -ProjectId servicepilot-development -AgentRegion europe-west3 -AgentId YOUR_AGENT_UUID
+./scripts/deploy-conversational-agent.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID
+```
+
+Indexing is asynchronous. Run live retrieval acceptance only after the import
+operation completes. The PDF content is fictional and suitable for the demo;
+replace or extend it later with approved manufacturer material.
+
+Verify the live hierarchy-aware retrieval without enabling Enterprise search:
+
+```powershell
+./scripts/test-knowledge-rag.ps1 -ProjectId servicepilot-development
+```

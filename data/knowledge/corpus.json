@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "language": "de",
+  "chunking": {
+    "method": "layout-aware-hierarchical",
+    "chunk_size_tokens": 300,
+    "include_ancestor_headings": true
+  },
+  "documents": [
+    {"id": "heatpump-x200-manual-v1", "title": "HeatPump-X200 Bedienungs- und Servicehandbuch", "version": "1.0", "model": "HeatPump-X200", "document_type": "manual", "source": "sources/heatpump-x200.md", "pdf": "documents/heatpump-x200.pdf"},
+    {"id": "heatpump-x300-manual-v1", "title": "HeatPump-X300 Bedienungs- und Servicehandbuch", "version": "1.0", "model": "HeatPump-X300", "document_type": "manual", "source": "sources/heatpump-x300.md", "pdf": "documents/heatpump-x300.pdf"},
+    {"id": "servicepilot-error-codes-v1", "title": "ServicePilot Fehlercode-Leitfaden", "version": "1.0", "model": "multiple", "document_type": "error_codes", "source": "sources/error-codes.md", "pdf": "documents/error-codes.pdf"},
+    {"id": "servicepilot-warranty-v1", "title": "ServicePilot Garantie- und Gewährleistungsleitfaden", "version": "1.0", "model": "multiple", "document_type": "warranty", "source": "sources/warranty.md", "pdf": "documents/warranty.pdf"},
+    {"id": "servicepilot-faq-v1", "title": "ServicePilot Service-FAQ", "version": "1.0", "model": "multiple", "document_type": "faq", "source": "sources/service-faq.md", "pdf": "documents/service-faq.pdf"}
+  ]
+}

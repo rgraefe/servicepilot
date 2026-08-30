@@ -178,6 +178,12 @@ Exit criterion:
 - technical answers cite or derive from managed knowledge data
 - missing answers do not produce fabricated facts
 
+Implementation status: complete. Five versioned German demo documents live
+under `data/knowledge`, are rendered as PDFs, and are imported into an Agent
+Search unstructured data store. Layout parsing uses 300-token child chunks with
+ancestor headings. KnowledgeSupport uses the `ServicePilotKnowledge` Data Store
+tool and covers cited, missing, and conflicting-result behavior.
+
 ---
 
 ## Phase 8 – Handover

@@ -1,5 +1,20 @@
 # Tool Contracts
 
+## `ServicePilotKnowledge`
+
+Dialogflow tool type: Data Store (`UNSTRUCTURED`). Input example:
+
+```json
+{"requestBody": {"query": "HeatPump-X200 Fehler E37 sichere Erstmaßnahmen"}}
+```
+
+The query includes exact model, code, and symptom when known. Output is accepted
+as factual support only when it contains a matching snippet and verifiable
+document title/source URI. Empty, fallback, or conflicting results never
+authorize a technical claim. For conflicts across models, KnowledgeSupport asks
+for the model. This tool performs no business transaction and is safe to retry
+once with a meaningfully corrected query.
+
 ## General Rules
 
 Tools must:

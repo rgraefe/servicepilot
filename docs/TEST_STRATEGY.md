@@ -93,6 +93,12 @@ the appointment must remain unchanged.
 29. conflicting knowledge documents
 30. handover creation failure
 
+Phase 7 additionally validates the local hierarchy contract, generated PDF
+presence, managed ingestion configuration (`layoutParsingConfig`, 300-token
+chunks, ancestor headings), cited answers, empty retrievals, and model-dependent
+conflicts. Live indexing/query acceptance runs after the asynchronous Agent
+Search import completes.
+
 ---
 
 ## Assertions

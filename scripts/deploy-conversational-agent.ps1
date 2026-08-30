@@ -39,7 +39,7 @@ $endpoint = "https://$Region-dialogflow.googleapis.com"
 $agentResource = "projects/$ProjectId/locations/$Region/agents/$AgentId"
 $apiRoot = "$endpoint/v3/$agentResource"
 
-if (-not $PSCmdlet.ShouldProcess($agentResource, 'Create or update Phase 6 tool- and flow-aware playbooks and examples')) {
+if (-not $PSCmdlet.ShouldProcess($agentResource, 'Create or update Phase 7 tool-, flow-, and knowledge-aware playbooks and examples')) {
     return
 }
 
@@ -141,6 +141,9 @@ foreach ($tool in @($toolListResponse.tools)) {
 }
 if (-not $toolResources.ContainsKey('ServicePilotBackend')) {
     throw 'ServicePilotBackend is missing. Run deploy-conversational-tools.ps1 before deploying Phase 5/6 playbooks.'
+}
+if (-not $toolResources.ContainsKey('ServicePilotKnowledge')) {
+    throw 'ServicePilotKnowledge is missing. Run deploy-knowledge-rag.ps1 before deploying Phase 7 playbooks.'
 }
 
 $flowListResponse = Invoke-DialogflowApi -Method Get -Uri "$apiRoot/flows?pageSize=100"

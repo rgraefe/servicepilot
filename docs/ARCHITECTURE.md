@@ -58,8 +58,15 @@ concerns are preserved in the invocation summary.
 Every playbook defines goal, scope, ordered instructions, tool-use constraints,
 failure behavior, escalation behavior, and at least four German examples. Backend
 tools were attached in Phase 5. Phase 6 additionally references the deterministic
-`AppointmentReschedule` flow from AppointmentManagement; managed knowledge remains
-reserved for Phase 7.
+`AppointmentReschedule` flow from AppointmentManagement. KnowledgeSupport calls
+the managed `ServicePilotKnowledge` Data Store tool backed by Agent Search.
+
+The knowledge ingestion boundary is document based: version-controlled Markdown
+sources are rendered to searchable PDFs, uploaded to Cloud Storage, and imported
+into an unstructured Agent Search data store. Google Layout Parser creates small
+semantic child chunks while `includeAncestorHeadings` carries parent-section
+context into each retrieval unit. This mirrors parent/child retrieval without a
+second vector database or retrieval service.
 
 ### Tool Layer
 
