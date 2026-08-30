@@ -35,7 +35,7 @@ Dialogflow service-agent `ID_TOKEN`; the schema contains no credentials.
 | `create_ticket` | `POST /tickets` | ServiceTicket after explicit confirmation |
 | `get_appointments` | `GET /customers/{customer_id}/appointments` | AppointmentManagement |
 | `list_available_slots` | `GET /appointments/available-slots` | AppointmentManagement |
-| `reschedule_appointment` | `PUT /appointments/{appointment_id}` | Reserved for Phase 6 flow |
+| `reschedule_appointment` | `PUT /appointments/{appointment_id}` | Phase 6 `AppointmentReschedule` flow only |
 
 List operations return JSON arrays because they map directly to the FastAPI
 contracts. An empty array is a successful result with no matching records. Any
@@ -254,6 +254,35 @@ Errors:
 
 `customer_id` is required by the Phase 1 HTTP contract so ownership is checked
 in deterministic service code rather than inferred by a caller.
+
+### Phase 6 flow mapping
+
+AppointmentManagement first retrieves the canonical appointment and currently
+available slots through read-only tool actions. It passes `customer_id`,
+`appointment_id`, the current start/end, and the selected slot's ID and
+start/end to `AppointmentReschedule`.
+
+The flow's confirmation page presents every one of those values. Only
+`ConfirmAppointmentReschedule` invokes the flexible webhook:
+
+```http
+PUT /appointments/$session.params.appointment_id
+```
+
+```json
+{
+  "customer_id": "$session.params.customer_id",
+  "slot_id": "$session.params.slot_id",
+  "confirmed": true
+}
+```
+
+Dialogflow authenticates using its service-agent ID token. Successful response
+fields are mapped to separate `updated_*` session parameters. A success response
+is emitted only when a write was attempted and the returned appointment,
+customer, slot, and status match the requested canonical values. Decline,
+ambiguous confirmation, missing inputs, timeout, non-success response, or a
+mismatched response cannot produce a success outcome.
 
 ---
 

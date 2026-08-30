@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "flow": {
+    "display_name": "AppointmentReschedule",
+    "description": "Deterministic confirmation and write boundary for one canonical appointment reschedule.",
+    "required_inputs": [
+      "customer_id",
+      "appointment_id",
+      "current_start",
+      "current_end",
+      "slot_id",
+      "proposed_start",
+      "proposed_end"
+    ],
+    "outputs": [
+      "reschedule_outcome",
+      "updated_appointment_id",
+      "updated_customer_id",
+      "updated_slot_id",
+      "updated_start",
+      "updated_end",
+      "updated_status"
+    ]
+  },
+  "intents": [
+    {
+      "display_name": "ConfirmAppointmentReschedule",
+      "training_phrases": [
+        "Ja, bitte genau so verschieben",
+        "Ja, diesen Termin verbindlich verschieben",
+        "Ich bestätige diese Terminänderung",
+        "Genau diese Änderung durchführen"
+      ]
+    },
+    {
+      "display_name": "DeclineAppointmentReschedule",
+      "training_phrases": [
+        "Nein, nicht verschieben",
+        "Terminänderung abbrechen",
+        "Bitte nichts ändern",
+        "Ich bestätige das nicht"
+      ]
+    }
+  ],
+  "webhook": {
+    "display_name": "AppointmentRescheduleBackend",
+    "type": "FLEXIBLE",
+    "method": "PUT",
+    "path": "/appointments/$session.params.appointment_id",
+    "timeout": "10s",
+    "authentication": "ID_TOKEN",
+    "request_body": {
+      "customer_id": "$session.params.customer_id",
+      "slot_id": "$session.params.slot_id",
+      "confirmed": true
+    },
+    "response_mapping": {
+      "updated_appointment_id": "$.appointment_id",
+      "updated_customer_id": "$.customer_id",
+      "updated_slot_id": "$.slot_id",
+      "updated_start": "$.start",
+      "updated_end": "$.end",
+      "updated_status": "$.status"
+    }
+  },
+  "pages": {
+    "confirm": {
+      "display_name": "Confirm exact reschedule",
+      "prompt": "Der Termin $session.params.appointment_id liegt derzeit von $session.params.current_start bis $session.params.current_end. Er soll auf den bestätigten freien Slot $session.params.slot_id von $session.params.proposed_start bis $session.params.proposed_end verschoben werden. Soll ich genau diese Änderung jetzt verbindlich durchführen?",
+      "confirm_intent": "ConfirmAppointmentReschedule",
+      "decline_intent": "DeclineAppointmentReschedule",
+      "webhook_errors": [
+        "webhook.error.timeout",
+        "webhook.error"
+      ]
+    },
+    "verify": {
+      "display_name": "Verify canonical reschedule result",
+      "success_condition": "$session.params.write_attempted = true AND $session.params.updated_appointment_id = $session.params.appointment_id AND $session.params.updated_customer_id = $session.params.customer_id AND $session.params.updated_slot_id = $session.params.slot_id AND $session.params.updated_status = \"scheduled\"",
+      "success_message": "Der Termin $session.params.updated_appointment_id wurde laut Backend erfolgreich auf $session.params.updated_start bis $session.params.updated_end verschoben.",
+      "failure_message": "Die Terminänderung konnte nicht als erfolgreich bestätigt werden. Es wird kein Erfolg gemeldet; bitte versuchen Sie es später erneut oder wenden Sie sich an einen Mitarbeiter."
+    }
+  },
+  "safety": {
+    "write_intent": "ConfirmAppointmentReschedule",
+    "write_count": 1,
+    "decline_outcome": "cancelled",
+    "error_outcome": "failed",
+    "success_outcome": "succeeded",
+    "ambiguous_confirmation_behavior": "reprompt"
+  }
+}

@@ -150,6 +150,15 @@ Exit criterion:
 
 - no write occurs without explicit confirmation
 
+Implementation note: Phase 6 adds the version-controlled
+`AppointmentReschedule` CX Flow. AppointmentManagement performs only the
+canonical appointment and slot reads, then passes the exact current and proposed
+values to the flow. Only the dedicated confirmation intent invokes the
+authenticated flexible webhook. The flow maps the canonical backend response,
+checks appointment, customer, slot, and status before reporting success, and
+returns explicit `succeeded`, `cancelled`, `failed`, or `invalid_input` outcomes.
+Ambiguous answers reprompt and never call the write endpoint.
+
 ---
 
 ## Phase 7 – Knowledge / RAG

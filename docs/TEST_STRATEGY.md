@@ -51,6 +51,13 @@ successful reads, confirmed writes, not-found errors, empty lists, and the rule
 that appointment rescheduling is not called generatively before Phase 6. Live
 acceptance tests use fresh Dialogflow sessions and canonical seeded identifiers.
 
+Phase 6 contract tests verify required canonical flow inputs, the exact
+confirmation prompt, the single write boundary, `confirmed: true`, service-agent
+ID-token authentication, canonical response verification, cancellation, ambiguous
+confirmation, and webhook failure outcomes. Live acceptance uses isolated
+sessions and compares backend state before and after a declined confirmation;
+the appointment must remain unchanged.
+
 ---
 
 ## Minimum Golden Conversations

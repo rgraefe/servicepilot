@@ -23,7 +23,7 @@ def catalog() -> dict:
 
 
 def test_catalog_defines_phase_four_agent(catalog: dict) -> None:
-    assert catalog["schema_version"] == 2
+    assert catalog["schema_version"] == 3
     assert catalog["agent"] == {
         "display_name": "ServicePilot",
         "default_language_code": "de",
@@ -97,6 +97,11 @@ def test_all_example_routes_reference_known_playbooks(catalog: dict) -> None:
                 assert isinstance(example["tool"]["input"], dict)
                 assert isinstance(example["tool"]["output"], (dict, list))
                 assert example.get("agent")
+            elif "flow" in example:
+                assert example["flow"]["name"] == "AppointmentReschedule"
+                assert isinstance(example["flow"]["input"], dict)
+                assert isinstance(example["flow"]["output"], dict)
+                assert example.get("agent")
             else:
                 assert example.get("agent")
 
@@ -144,6 +149,25 @@ def test_phase_five_binds_tools_only_to_responsible_playbooks(catalog: dict) -> 
     assert not tool_bindings["ComplaintManagement"]
 
 
+def test_phase_six_binds_reschedule_flow_only_to_appointment_playbook(
+    catalog: dict,
+) -> None:
+    flow_bindings = {
+        playbook["name"]: playbook.get("flows", [])
+        for playbook in catalog["playbooks"]
+    }
+    assert flow_bindings["AppointmentManagement"] == ["AppointmentReschedule"]
+    assert all(
+        not flows
+        for name, flows in flow_bindings.items()
+        if name != "AppointmentManagement"
+    )
+    appointment = next(
+        item for item in catalog["playbooks"] if item["name"] == "AppointmentManagement"
+    )
+    assert "${FLOW: AppointmentReschedule}" in " ".join(appointment["instructions"])
+
+
 def test_phase_five_tool_examples_cover_reads_writes_and_errors(catalog: dict) -> None:
     tool_examples = [
         example
@@ -173,3 +197,7 @@ def test_phase_five_tool_examples_cover_reads_writes_and_errors(catalog: dict) -
         item for item in catalog["playbooks"] if item["name"] == "AppointmentManagement"
     )
     assert "niemals direkt" in " ".join(appointment["instructions"])
+    flow_example = next(
+        example for example in appointment["examples"] if "flow" in example
+    )
+    assert flow_example["flow"]["output"]["reschedule_outcome"] == "succeeded"

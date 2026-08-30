@@ -39,7 +39,7 @@ $endpoint = "https://$Region-dialogflow.googleapis.com"
 $agentResource = "projects/$ProjectId/locations/$Region/agents/$AgentId"
 $apiRoot = "$endpoint/v3/$agentResource"
 
-if (-not $PSCmdlet.ShouldProcess($agentResource, 'Create or update Phase 5 tool-aware playbooks and examples')) {
+if (-not $PSCmdlet.ShouldProcess($agentResource, 'Create or update Phase 6 tool- and flow-aware playbooks and examples')) {
     return
 }
 
@@ -119,6 +119,16 @@ function New-PlaybookBody {
     if ($referencedTools.Count -gt 0) {
         $body.referencedTools = $referencedTools
     }
+    # referencedFlows is output-only in the Dialogflow API. Validate catalog
+    # declarations here; Dialogflow infers the reference from ${FLOW: ...} steps.
+    if ($Definition.PSObject.Properties.Name -contains 'flows') {
+        @($Definition.flows | ForEach-Object {
+                $resourceName = $flowResources[$_]
+                if ([string]::IsNullOrWhiteSpace($resourceName)) {
+                    throw "Playbook '$($Definition.name)' references unknown flow '$_'."
+                }
+            }) | Out-Null
+    }
     return $body
 }
 
@@ -130,7 +140,18 @@ foreach ($tool in @($toolListResponse.tools)) {
     }
 }
 if (-not $toolResources.ContainsKey('ServicePilotBackend')) {
-    throw 'ServicePilotBackend is missing. Run deploy-conversational-tools.ps1 before deploying Phase 5 playbooks.'
+    throw 'ServicePilotBackend is missing. Run deploy-conversational-tools.ps1 before deploying Phase 5/6 playbooks.'
+}
+
+$flowListResponse = Invoke-DialogflowApi -Method Get -Uri "$apiRoot/flows?pageSize=100"
+$flowResources = @{}
+foreach ($flow in @($flowListResponse.flows)) {
+    if ($null -ne $flow) {
+        $flowResources[$flow.displayName] = $flow.name
+    }
+}
+if (-not $flowResources.ContainsKey('AppointmentReschedule')) {
+    throw 'AppointmentReschedule is missing. Run deploy-appointment-reschedule-flow.ps1 before deploying Phase 6 playbooks.'
 }
 
 $listResponse = Invoke-DialogflowApi -Method Get -Uri "$apiRoot/playbooks?pageSize=100"
@@ -158,10 +179,10 @@ function Test-PlaybookAlreadyCurrent {
     )
 
     $desiredSteps = @($Desired.instruction.steps | ForEach-Object {
-            $_.text.Replace('${TOOL: ', '${TOOL:').Replace('${PLAYBOOK: ', '${PLAYBOOK:')
+            $_.text.Replace('${TOOL: ', '${TOOL:').Replace('${PLAYBOOK: ', '${PLAYBOOK:').Replace('${FLOW: ', '${FLOW:')
         })
     $currentSteps = @($Current.instruction.steps | ForEach-Object {
-            $_.text.Replace('${TOOL: ', '${TOOL:').Replace('${PLAYBOOK: ', '${PLAYBOOK:')
+            $_.text.Replace('${TOOL: ', '${TOOL:').Replace('${PLAYBOOK: ', '${PLAYBOOK:').Replace('${FLOW: ', '${FLOW:')
         })
     if ($currentSteps.Count -lt $desiredSteps.Count) {
         return $false
@@ -193,12 +214,23 @@ foreach ($definition in @($catalog.playbooks | Where-Object { -not $_.default })
             continue
         }
         $resourceName = $playbookResources[$definition.name]
-        $updateFields = @('displayName', 'goal', 'instruction', 'playbookType')
+        # Address nested instruction fields explicitly. Masking the parent
+        # message can append repeated steps instead of replacing them.
+        $updateFields = @(
+            'displayName',
+            'goal',
+            'instruction.guidelines',
+            'instruction.steps',
+            'playbookType'
+        )
         $desiredTools = @($body.referencedTools)
         $currentTools = @($playbookReferencedTools[$definition.name])
         $currentToolSet = ($currentTools | Sort-Object) -join "`n"
         $desiredToolSet = ($desiredTools | Sort-Object) -join "`n"
-        if ($currentToolSet -ne $desiredToolSet) {
+        # Dialogflow re-resolves ${TOOL: ...} references whenever instruction is
+        # patched. Include referencedTools even when unchanged so the resolver
+        # validates against the current agent draft instead of a stale reference.
+        if ($desiredTools.Count -gt 0 -or $currentTools.Count -gt 0) {
             $updateFields += 'referencedTools'
         }
         else {
@@ -268,6 +300,23 @@ function Sync-PlaybookExamples {
                 $actions += @{ agentUtterance = @{ text = $example.agent } }
             }
         }
+        elseif ($null -ne $example.flow) {
+            $flowResource = $flowResources[$example.flow.name]
+            if ([string]::IsNullOrWhiteSpace($flowResource)) {
+                throw "Example '$($example.name)' references unknown flow '$($example.flow.name)'."
+            }
+            $actions += @{
+                flowInvocation = @{
+                    flow = $flowResource
+                    inputActionParameters = $example.flow.input
+                    outputActionParameters = $example.flow.output
+                    flowState = "OUTPUT_STATE_$($example.state)"
+                }
+            }
+            if ($null -ne $example.agent) {
+                $actions += @{ agentUtterance = @{ text = $example.agent } }
+            }
+        }
         elseif ($null -ne $example.agent) {
             $actions += @{ agentUtterance = @{ text = $example.agent } }
         }
@@ -316,7 +365,7 @@ if ($playbookResources.ContainsKey($defaultDefinition.name) -and
 if ($reservedDefaultExists) {
     $defaultResource = $reservedDefaultResource
     if (-not (Test-PlaybookAlreadyCurrent -Current $playbookSnapshots[$defaultDefinition.name] -Desired $defaultBody -AllowMissingGuidelines)) {
-        $defaultUri = "$endpoint/v3/$reservedDefaultResource`?updateMask=displayName,goal,instruction,playbookType,referencedTools"
+        $defaultUri = "$endpoint/v3/$reservedDefaultResource`?updateMask=displayName,goal,instruction.guidelines,instruction.steps,playbookType,referencedTools"
         $updatedDefault = Invoke-DialogflowApi -Method Patch -Uri $defaultUri -Body $defaultBody
         $defaultResource = $updatedDefault.name
     }
@@ -337,5 +386,6 @@ Sync-PlaybookExamples -Definition $defaultDefinition
     agent = $agentResource
     playbooks = @($playbookResources.Keys | Sort-Object)
     tools = @($toolResources.Keys | Sort-Object)
+    flows = @($flowResources.Keys | Sort-Object)
     examples = (@($catalog.playbooks | ForEach-Object { $_.examples.Count }) | Measure-Object -Sum).Sum
 }

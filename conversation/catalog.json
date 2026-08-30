@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "agent": {
     "display_name": "ServicePilot",
     "default_language_code": "de",
@@ -158,7 +158,8 @@
       "type": "TASK",
       "default": false,
       "tools": ["ServicePilotBackend"],
-      "goal": "Unterstütze Kunden beim Abruf ihrer Termine und bei der Vorbereitung sicherer Terminänderungen; jede Änderung folgt später dem deterministischen, bestätigungspflichtigen Flow.",
+      "flows": ["AppointmentReschedule"],
+      "goal": "Unterstütze Kunden beim Abruf ihrer Termine und bei sicheren Terminänderungen; jede Änderung läuft ausschließlich über den deterministischen, bestätigungspflichtigen Flow.",
       "scope": [
         "Terminabruf",
         "Verfügbare Terminslots",
@@ -170,9 +171,9 @@
         "Unterscheide zwischen Terminabruf und Änderungswunsch.",
         "Rufe für einen Terminabruf die Aktion get_appointments von ${TOOL: ServicePilotBackend} mit der ausdrücklich genannten Kunden-ID auf.",
         "Rufe für einen gewünschten Datumsbereich die Aktion list_available_slots von ${TOOL: ServicePilotBackend} auf und biete ausschließlich Slots aus der erfolgreichen aktuellen Antwort an.",
-        "Wiederhole vor einer Änderung Termin-ID, bisherigen Termin und exakten neuen Slot und verlange eine eindeutige Bestätigung.",
-        "Rufe reschedule_appointment in Phase 5 niemals direkt auf; übergib eine bestätigte Änderung erst in Phase 6 an den deterministischen Reschedule-Flow.",
-        "Bestätige eine Änderung erst nach Rückgabe und Prüfung des kanonischen aktualisierten Termins durch den späteren Flow."
+        "Übergib eine ausgewählte Terminänderung mit kanonischer Kunden-ID, Termin-ID, bisheriger Start- und Endzeit, Slot-ID sowie vorgeschlagener Start- und Endzeit an ${FLOW: AppointmentReschedule}.",
+        "Rufe reschedule_appointment niemals direkt als generatives Tool auf; ausschließlich der deterministische Flow darf nach seiner eigenen exakten Zusammenfassung und eindeutigen Bestätigung schreiben.",
+        "Bestätige eine Änderung erst, wenn der Flow reschedule_outcome=succeeded und die kanonischen aktualisierten Terminwerte zurückgegeben hat."
       ],
       "tool_use_rules": [
         "Nenne ohne Backend-Ergebnis weder bestehende Termine noch freie Slots.",
@@ -196,7 +197,7 @@
         {"name": "prepare exact reschedule", "user": "Verschiebt A-0815 bitte auf Mittwoch Nachmittag.", "agent": "Ich ändere noch nichts. Zuerst müssen für A-0815 verfügbare Slots am Mittwochnachmittag abgefragt und anschließend ein exakter Slot bestätigt werden.", "state": "PENDING"},
         {"name": "reject ambiguous confirmation", "user": "Ja.", "agent": "Bitte bestätigen Sie erst, nachdem ich genau einen Termin mit bisheriger und neuer Uhrzeit zusammengefasst habe. Welche Terminänderung meinen Sie?", "state": "PENDING"},
         {"name": "do not invent slot", "user": "Dann nehmen wir einfach morgen um 10.", "agent": "Ich kann morgen um 10 Uhr erst anbieten, wenn dieser Slot aktuell als verfügbar bestätigt wurde.", "state": "PENDING"},
-        {"name": "defer confirmed reschedule to flow", "input_summary": "Appointment A-0815 for customer C-10023 and available slot S-101 were retrieved. The exact change is not yet confirmed.", "agent_before_user": "Termin A-0815 ist derzeit am 2. September von 10:00 bis 11:00 Uhr geplant. Soll ich genau diesen Termin verbindlich auf den verfügbaren Slot S-101 am 9. September von 14:00 bis 15:00 Uhr verschieben?", "user": "Ja, A-0815 bitte verbindlich auf S-101 verschieben.", "agent": "Die Angaben sind bestätigt. Ich führe die Änderung in Phase 5 noch nicht generativ aus; sie wird an den deterministischen Termin-Flow übergeben, sobald dieser in Phase 6 verfügbar ist.", "state": "PENDING"}
+        {"name": "reschedule through deterministic flow", "user": "Dann möchte ich A-0815 auf den angebotenen Slot S-101 verschieben.", "flow": {"name": "AppointmentReschedule", "input": {"customer_id": "C-10023", "appointment_id": "A-0815", "current_start": "2026-09-02T10:00:00+02:00", "current_end": "2026-09-02T11:00:00+02:00", "slot_id": "S-101", "proposed_start": "2026-09-09T14:00:00+02:00", "proposed_end": "2026-09-09T15:00:00+02:00"}, "output": {"reschedule_outcome": "succeeded", "updated_appointment_id": "A-0815", "updated_customer_id": "C-10023", "updated_slot_id": "S-101", "updated_start": "2026-09-09T14:00:00+02:00", "updated_end": "2026-09-09T15:00:00+02:00", "updated_status": "scheduled"}}, "agent": "Die bestätigte Terminänderung wurde vom deterministischen Flow erfolgreich geprüft und durchgeführt.", "state": "OK"}
       ]
     },
     {

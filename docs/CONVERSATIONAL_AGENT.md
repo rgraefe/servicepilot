@@ -3,10 +3,9 @@
 ## Phase 4 scope
 
 Phase 4 defines the ServicePilot conversational architecture as version-controlled
-Dialogflow CX playbooks. Phase 5 adds the backend OpenAPI tool while managed
-data-store integration still belongs to Phase 7. This separation lets routing,
-delegation, safety boundaries, and failure behavior be reviewed before an LLM can
-read or mutate business data.
+Dialogflow CX playbooks. Phase 5 adds the backend OpenAPI tool and Phase 6 adds a
+deterministic appointment-rescheduling flow. Managed data-store integration still
+belongs to Phase 7.
 
 The source of truth is `conversation/catalog.json`. It contains:
 
@@ -57,8 +56,8 @@ Create the agent once in the
 7. Select **Playbook** for **Conversation start** when the option is available.
 8. Create the agent and copy its UUID from the agent URL or settings.
 
-Do not choose Flow as the entry point. Phase 6 will add a deterministic flow for
-the critical rescheduling write without replacing the default playbook.
+Do not choose Flow as the entry point. The Phase 6 deterministic flow owns only
+the critical rescheduling write and does not replace the default playbook.
 
 Enable the Dialogflow API once:
 
@@ -66,7 +65,7 @@ Enable the Dialogflow API once:
 gcloud services enable dialogflow.googleapis.com --project=servicepilot-development
 ```
 
-## Deploy backend tools and playbooks
+## Deploy backend tools, transaction flow, and playbooks
 
 Phase 5 requires the private Cloud Run service to use ingress `all` unless an
 organization-specific Service Directory path is configured. `all` does not make
@@ -96,6 +95,25 @@ schema in memory, and creates or updates `ServicePilotBackend` with service-agen
 ID-token authentication. It creates an immutable tool version only when no
 identical schema/authentication version exists. No credential is written to disk.
 
+Next deploy the deterministic flow. Its source definition contains no credential;
+the script configures the flexible webhook with the same Dialogflow service-agent
+ID-token identity used by the OpenAPI tool:
+
+```powershell
+./scripts/deploy-appointment-reschedule-flow.ps1 `
+  -ProjectId servicepilot-development `
+  -Region europe-west3 `
+  -AgentId YOUR_AGENT_UUID `
+  -CloudRunServiceName servicepilot-api `
+  -WhatIf
+
+./scripts/deploy-appointment-reschedule-flow.ps1 `
+  -ProjectId servicepilot-development `
+  -Region europe-west3 `
+  -AgentId YOUR_AGENT_UUID `
+  -CloudRunServiceName servicepilot-api
+```
+
 Then preview the playbook change:
 
 Preview the change:
@@ -117,13 +135,15 @@ Apply it:
   -AgentId YOUR_AGENT_UUID
 ```
 
-The playbook script converges resources by display name. It requires
-`ServicePilotBackend` to exist, creates missing specialist and
-DefaultService playbooks, updates existing prompts, assigns DefaultService as the
-agent's `startPlaybook`, and synchronizes named examples. Dialogflow appends the
-repeated `actions` field during an example PATCH, so the script replaces an
-existing named example before recreating its ordered actions. It does not create
-flows, data stores, service-account keys, or secrets.
+The flow script converges the two confirmation intents, authenticated flexible
+webhook, deterministic flow, and confirmation/verification pages by display name.
+The playbook script requires both `ServicePilotBackend` and
+`AppointmentReschedule`, creates missing specialist and DefaultService playbooks,
+updates prompts and references, assigns DefaultService as the agent's
+`startPlaybook`, and synchronizes named examples. Dialogflow appends the repeated
+`actions` field during an example PATCH, so the script replaces an existing named
+example before recreating its ordered actions. Neither script creates data stores,
+service-account keys, or secrets.
 
 ## Routing acceptance checks
 
@@ -145,22 +165,29 @@ Then use the Dialogflow simulator with a new session for each representative cas
 | `Meine Anlage zeigt E37 und ich möchte wissen, ob der Techniker morgen kommt.` | AppointmentManagement, retaining E37 context |
 | `Ich brauche Hilfe.` | DefaultService asks one clarification question |
 
-In Phase 5, specialists may report canonical read results and explicitly confirmed
-ticket creation only after successful tool output. Appointment rescheduling remains
-deferred to Phase 6.
+AppointmentManagement may retrieve only canonical appointments and available
+slots. It passes the selected values to `AppointmentReschedule` and never calls
+the rescheduling action generatively. The flow presents the current appointment
+and exact proposed slot, accepts only its explicit confirmation intent, performs
+one write, and reports success only after the canonical backend response matches.
+Decline, ambiguous input, missing state, webhook failure, and response mismatch do
+not produce a success message.
 
 ## Change workflow
 
-1. Update `conversation/catalog.json`.
-2. Add or update golden routes.
+1. Update `conversation/catalog.json` and, for transaction behavior,
+   `conversation/appointment-reschedule-flow.json`.
+2. Add or update golden routes and flow contract tests.
 3. Run the Docker test suite.
-4. Preview and apply the deployment script.
-5. Run the simulator acceptance cases.
-6. Review Dialogflow validation warnings before promoting a new playbook version.
+4. Deploy tools, flow, and playbooks in that order.
+5. Run the simulator acceptance cases, including decline/no-write.
+6. Review Dialogflow validation warnings before promoting a new configuration.
 
 Google documentation:
 
 - [Playbooks](https://cloud.google.com/dialogflow/cx/docs/concept/playbook)
 - [Playbook instructions](https://cloud.google.com/dialogflow/cx/docs/concept/playbook/instruction)
 - [Playbook examples](https://cloud.google.com/dialogflow/cx/docs/concept/playbook/example)
+- [Flows](https://cloud.google.com/dialogflow/cx/docs/concept/flow)
+- [Flexible webhooks](https://cloud.google.com/dialogflow/cx/docs/concept/webhook)
 - [Conversational Agents console](https://cloud.google.com/dialogflow/cx/docs/concept/console-conversational-agents)

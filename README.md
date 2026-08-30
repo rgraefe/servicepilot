@@ -167,12 +167,14 @@ Preview a deployment:
 
 ## Conversational agent
 
-Phases 4 and 5 define five version-controlled Dialogflow CX playbooks in
+Phases 4 through 6 define five version-controlled Dialogflow CX playbooks in
 `conversation/catalog.json`: DefaultService, KnowledgeSupport, ServiceTicket,
 AppointmentManagement, and ComplaintManagement. DefaultService routes and
 delegates; it does not execute business logic. `ServicePilotBackend` exposes six
 deterministic operations from `conversation/servicepilot-openapi.json` and calls
 the private Cloud Run service with a Dialogflow service-agent ID token.
+`conversation/appointment-reschedule-flow.json` defines the deterministic
+confirmation and write boundary for appointment changes.
 
 Run the routing contract tests inside Docker:
 
@@ -187,7 +189,13 @@ tool and its Cloud Run invoker binding first:
 ./scripts/deploy-conversational-tools.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID -CloudRunServiceName servicepilot-api
 ```
 
-Then apply the tool-aware playbook catalog:
+Deploy the deterministic rescheduling flow and its authenticated flexible webhook:
+
+```powershell
+./scripts/deploy-appointment-reschedule-flow.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID -CloudRunServiceName servicepilot-api
+```
+
+Then apply the tool- and flow-aware playbook catalog:
 
 ```powershell
 ./scripts/deploy-conversational-agent.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID
@@ -195,4 +203,5 @@ Then apply the tool-aware playbook catalog:
 
 See [docs/CONVERSATIONAL_AGENT.md](docs/CONVERSATIONAL_AGENT.md) for one-time
 agent creation, authenticated tool deployment, routing acceptance cases, and the
-Phase 5/6 transaction boundary.
+Phase 5/6 transaction boundary. Always deploy in the order shown above: tool,
+flow, then playbooks.

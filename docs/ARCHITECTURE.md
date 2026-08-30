@@ -56,11 +56,10 @@ explicitly requested outcome determines the first delegation and remaining
 concerns are preserved in the invocation summary.
 
 Every playbook defines goal, scope, ordered instructions, tool-use constraints,
-failure behavior, escalation behavior, and at least four German examples. The
-Phase 4 catalog contains no tool references: backend tools are attached in Phase 5,
-the deterministic rescheduling flow in Phase 6, and managed knowledge in Phase 7.
-This prevents a routing-only agent from fabricating tool results during staged
-delivery.
+failure behavior, escalation behavior, and at least four German examples. Backend
+tools were attached in Phase 5. Phase 6 additionally references the deterministic
+`AppointmentReschedule` flow from AppointmentManagement; managed knowledge remains
+reserved for Phase 7.
 
 ### Tool Layer
 
@@ -91,8 +90,11 @@ the agent configuration.
 ServiceTicket may use `get_customer`, `get_ticket`, and `create_ticket`.
 AppointmentManagement may use `get_appointments` and `list_available_slots`.
 Although `reschedule_appointment` is described in the OpenAPI tool, the generative
-playbook is explicitly forbidden from calling it in Phase 5. Phase 6 will invoke
-that action from a deterministic confirmation flow.
+playbook is explicitly forbidden from calling it. The Phase 6
+`AppointmentReschedule` CX Flow is the sole conversational caller. Its flexible
+webhook performs one authenticated `PUT` only after the dedicated confirmation
+intent matched, and the flow verifies the canonical appointment, customer, slot,
+and scheduled status before it emits a successful outcome.
 
 ### Backend Layer
 
@@ -165,9 +167,11 @@ Initial implementation may use Google managed Data Stores.
 The Dialogflow CX agent uses German as its default language, `Europe/Berlin` as
 its time zone, and `europe-west3` as its location.
 `scripts/deploy-conversational-tools.ps1` first synchronizes the authenticated
-OpenAPI tool and its Cloud Run invoker binding. Then
-`scripts/deploy-conversational-agent.ps1` applies DefaultService,
-specialist playbooks, prompts, routing references, and examples from the catalog,
+OpenAPI tool and its Cloud Run invoker binding.
+`scripts/deploy-appointment-reschedule-flow.ps1` then converges the intents,
+flexible webhook, flow, and confirmation/verification pages. Finally,
+`scripts/deploy-conversational-agent.ps1` applies DefaultService, specialist
+playbooks, tool and flow references, prompts, routing references, and examples,
 then assigns DefaultService as `startPlaybook`. A local deterministic routing
 contract provides fast CI feedback but is never used as the production
 conversational router.
