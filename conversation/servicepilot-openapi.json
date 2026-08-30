@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "ServicePilot Conversational Backend",
-    "version": "0.5.0",
+    "version": "0.8.0",
     "description": "Deterministic ServicePilot operations for Dialogflow CX. Business errors use non-2xx responses with a structured error envelope."
   },
   "servers": [
@@ -258,6 +258,36 @@
           }
         }
       }
+    },
+    "/handover": {
+      "post": {
+        "operationId": "create_handover",
+        "summary": "Queue one structured human handover",
+        "description": "Use for an explicit human request, complaint, technical escalation, or after two consecutive tool failures. Call once with a neutral conversation summary and only report success from the canonical queued handover. A stable handover_request_id makes an uncertain retry idempotent.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/HandoverCreate"}
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Canonical queued handover",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Handover"}
+              }
+            }
+          },
+          "403": {"$ref": "#/components/responses/PermissionDenied"},
+          "404": {"$ref": "#/components/responses/NotFound"},
+          "409": {"$ref": "#/components/responses/BusinessConflict"},
+          "422": {"$ref": "#/components/responses/ValidationError"},
+          "503": {"$ref": "#/components/responses/PersistenceUnavailable"}
+        }
+      }
     }
   },
   "components": {
@@ -305,6 +335,14 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorEnvelope"
             }
+          }
+        }
+      },
+      "PermissionDenied": {
+        "description": "A supplied entity does not belong to the supplied customer",
+        "content": {
+          "application/json": {
+            "schema": {"$ref": "#/components/schemas/ErrorEnvelope"}
           }
         }
       },
@@ -469,6 +507,52 @@
             "description": "Must be true; false is rejected with CONFIRMATION_REQUIRED."
           }
         }
+      },
+      "HandoverContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {"$ref": "#/components/schemas/NullableIdentifier"},
+          "device_model": {"type": "string", "nullable": true, "minLength": 1, "maxLength": 2000},
+          "error_code": {"type": "string", "nullable": true, "minLength": 1, "maxLength": 2000},
+          "appointment_id": {"$ref": "#/components/schemas/NullableIdentifier"},
+          "last_tool": {"type": "string", "nullable": true, "minLength": 1, "maxLength": 2000},
+          "failure_count": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 10}
+        }
+      },
+      "HandoverCreate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reason", "conversation_summary"],
+        "properties": {
+          "handover_request_id": {"$ref": "#/components/schemas/NullableIdentifier"},
+          "customer_id": {"$ref": "#/components/schemas/NullableIdentifier"},
+          "reason": {"type": "string", "enum": ["human_request", "technical_escalation", "complaint", "repeated_failure"]},
+          "conversation_summary": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "ticket_id": {"$ref": "#/components/schemas/NullableIdentifier"},
+          "context": {"$ref": "#/components/schemas/HandoverContext"}
+        }
+      },
+      "Handover": {
+        "allOf": [
+          {"$ref": "#/components/schemas/HandoverCreate"},
+          {
+            "type": "object",
+            "required": ["handover_id", "status", "priority"],
+            "properties": {
+              "handover_id": {"$ref": "#/components/schemas/Identifier"},
+              "status": {"type": "string", "enum": ["queued"]},
+              "priority": {"type": "string", "enum": ["normal", "high"]}
+            }
+          }
+        ]
+      },
+      "NullableIdentifier": {
+        "type": "string",
+        "nullable": true,
+        "minLength": 3,
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
       },
       "ErrorEnvelope": {
         "type": "object",

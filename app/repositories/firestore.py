@@ -166,6 +166,10 @@ class FirestoreHandoverRepository:
     def __init__(self, client: AsyncClient) -> None:
         self._collection = client.collection("handovers")
 
+    async def get(self, handover_id: str) -> Handover | None:
+        snapshot = await self._collection.document(handover_id).get()
+        return _model_from_snapshot(Handover, snapshot)
+
     async def add(self, handover: Handover) -> Handover:
         await self._collection.document(handover.handover_id).create(
             firestore_document(handover)

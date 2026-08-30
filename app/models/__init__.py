@@ -1,7 +1,7 @@
 from app.models.appointment import Appointment, AppointmentReschedule, AppointmentSlot
 from app.models.customer import Customer
 from app.models.device import Device
-from app.models.handover import Handover, HandoverCreate
+from app.models.handover import Handover, HandoverContext, HandoverCreate
 from app.models.ticket import Ticket, TicketCreate
 
 __all__ = [
@@ -11,8 +11,8 @@ __all__ = [
     "Customer",
     "Device",
     "Handover",
+    "HandoverContext",
     "HandoverCreate",
     "Ticket",
     "TicketCreate",
 ]
-

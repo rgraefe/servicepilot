@@ -176,6 +176,12 @@ the private Cloud Run service with a Dialogflow service-agent ID token.
 `conversation/appointment-reschedule-flow.json` defines the deterministic
 confirmation and write boundary for appointment changes.
 
+Phase 8 exposes `create_handover` through the authenticated backend tool.
+Specialists can queue human requests, complaints, technical escalations, and
+repeated-failure handovers with a neutral conversation summary and structured
+context. Missing identity does not block an explicit human request. Stable
+request IDs make an identical uncertain retry idempotent.
+
 Run the routing contract tests inside Docker:
 
 ```bash

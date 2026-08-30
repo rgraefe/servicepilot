@@ -168,7 +168,7 @@ $matchingVersion = @($versionList.toolVersions) |
     Select-Object -First 1
 if ($null -eq $matchingVersion) {
     $versionBody = @{
-        displayName = "phase-5-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))"
+        displayName = "phase-8-$([DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss'))"
         tool = $toolBody
     }
     $matchingVersion = Invoke-DialogflowApi -Method Post -Uri "$endpoint/v3/$($tool.name)/versions" -Body $versionBody

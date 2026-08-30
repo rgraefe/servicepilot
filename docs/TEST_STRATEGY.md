@@ -99,6 +99,12 @@ chunks, ancestor headings), cited answers, empty retrievals, and model-dependent
 conflicts. Live indexing/query acceptance runs after the asynchronous Agent
 Search import completes.
 
+Phase 8 validates explicit handover with and without identity, every structured
+reason, neutral summaries and context, customer/ticket ownership, deterministic
+priority, stable-request idempotency, conflicting retries, escalation after two
+consecutive failures, and the rule that a failed handover never produces a false
+success or invented handover number.
+
 ---
 
 ## Assertions

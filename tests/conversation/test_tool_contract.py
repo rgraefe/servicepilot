@@ -12,6 +12,7 @@ EXPECTED_OPERATIONS = {
     "get_appointments": ("/customers/{customer_id}/appointments", "get"),
     "list_available_slots": ("/appointments/available-slots", "get"),
     "reschedule_appointment": ("/appointments/{appointment_id}", "put"),
+    "create_handover": ("/handover", "post"),
 }
 
 
@@ -19,7 +20,7 @@ def load_tool_schema() -> dict:
     return json.loads(TOOL_SCHEMA_PATH.read_text(encoding="utf-8"))
 
 
-def test_tool_schema_exposes_exact_phase_five_operations() -> None:
+def test_tool_schema_exposes_exact_current_operations() -> None:
     schema = load_tool_schema()
     actual = {
         operation["operationId"]: (path, method)
@@ -55,6 +56,8 @@ def test_tool_schema_preserves_non_2xx_error_contracts() -> None:
         "responses"
     ]
     assert "409" in reschedule_responses
+    handover_responses = schema["paths"]["/handover"]["post"]["responses"]
+    assert {"403", "404", "409"} <= set(handover_responses)
 
 
 def test_reschedule_tool_is_reserved_for_deterministic_phase_six_flow() -> None:
@@ -62,6 +65,22 @@ def test_reschedule_tool_is_reserved_for_deterministic_phase_six_flow() -> None:
 
     assert "Phase 6" in operation["description"]
     assert "Do not call directly" in operation["description"]
+
+
+def test_handover_tool_has_structured_idempotent_contract() -> None:
+    schema = load_tool_schema()
+    operation = schema["paths"]["/handover"]["post"]
+    request = schema["components"]["schemas"]["HandoverCreate"]
+
+    assert "stable handover_request_id" in operation["description"]
+    assert request["required"] == ["reason", "conversation_summary"]
+    assert "context" in request["properties"]
+    assert request["properties"]["reason"]["enum"] == [
+        "human_request",
+        "technical_escalation",
+        "complaint",
+        "repeated_failure",
+    ]
 
 
 def test_tool_schema_contains_no_credentials_or_secret_values() -> None:

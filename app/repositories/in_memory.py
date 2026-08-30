@@ -102,6 +102,9 @@ class InMemoryHandoverRepository:
         self._items = {item.handover_id: item for item in handovers or []}
         self._lock = asyncio.Lock()
 
+    async def get(self, handover_id: str) -> Handover | None:
+        return self._items.get(handover_id)
+
     async def add(self, handover: Handover) -> Handover:
         async with self._lock:
             self._items[handover.handover_id] = handover

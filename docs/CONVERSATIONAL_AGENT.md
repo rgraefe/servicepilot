@@ -5,7 +5,8 @@
 Phase 4 defines the ServicePilot conversational architecture as version-controlled
 Dialogflow CX playbooks. Phase 5 adds the backend OpenAPI tool, Phase 6 adds a
 deterministic appointment-rescheduling flow, and Phase 7 connects
-KnowledgeSupport to managed Agent Search through a Data Store tool.
+KnowledgeSupport to managed Agent Search through a Data Store tool. Phase 8 uses
+the backend tool for structured human handovers from every specialist.
 
 The source of truth is `conversation/catalog.json`. It contains:
 
@@ -151,6 +152,13 @@ KnowledgeSupport searches for every technical, error-code, manual, warranty, and
 FAQ answer. It cites the title and section (plus URI when returned), asks for the
 model when codes conflict, and treats empty or fallback results as unknown rather
 than filling gaps from model knowledge.
+
+For handover, the specialist sends a stable request ID, one of four controlled
+reasons, a neutral conversation summary, and only known context. An explicit
+human request is queued immediately even without a customer ID. Two consecutive
+tool failures trigger repeated-failure escalation. The agent reports success only
+from `status=queued` plus a canonical handover ID and never promises immediate
+human availability.
 
 ## Routing acceptance checks
 

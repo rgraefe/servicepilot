@@ -103,6 +103,15 @@ webhook performs one authenticated `PUT` only after the dedicated confirmation
 intent matched, and the flow verifies the canonical appointment, customer, slot,
 and scheduled status before it emits a successful outcome.
 
+Phase 8 adds `create_handover` to the same authenticated backend tool.
+KnowledgeSupport and ComplaintManagement now also reference that backend tool;
+ServiceTicket and AppointmentManagement reuse their existing binding. A human
+request may be queued without customer identity, while any supplied customer or
+ticket is validated deterministically. The caller provides a stable
+`handover_request_id`; an identical retry returns the original handover and a
+different payload under the same ID is rejected with
+`HANDOVER_REQUEST_CONFLICT`.
+
 ### Backend Layer
 
 Python/FastAPI service deployed to Google Cloud Run.
@@ -278,15 +287,23 @@ Example:
 
 ```json
 {
+  "handover_request_id": "HO-TECH-001",
   "customer_id": "C-10023",
   "reason": "technical_escalation",
   "conversation_summary": "Customer reports recurring E37 on HeatPump-X200.",
   "ticket_id": "T-9321",
-  "priority": "normal"
+  "context": {
+    "device_model": "HeatPump-X200",
+    "error_code": "E37"
+  }
 }
 ```
 
-The goal is to avoid forcing a human agent to restart the conversation.
+The backend derives priority from the reason and returns the canonical
+`handover_id`, `priority`, and `queued` status. The agent never promises a live
+transfer or response time. Two consecutive tool failures trigger a
+`repeated_failure` handover; one failure does not. The goal is to avoid forcing a
+human agent to restart the conversation while retaining safe identity boundaries.
 
 ---
 

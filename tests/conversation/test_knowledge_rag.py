@@ -61,7 +61,7 @@ def test_knowledge_playbook_covers_citation_unknown_and_conflict_paths() -> None
     catalog = json.loads((ROOT / "conversation" / "catalog.json").read_text(encoding="utf-8"))
     playbook = next(item for item in catalog["playbooks"] if item["name"] == "KnowledgeSupport")
     examples = {example["name"]: example for example in playbook["examples"]}
-    assert playbook["tools"] == ["ServicePilotKnowledge"]
+    assert playbook["tools"] == ["ServicePilotKnowledge", "ServicePilotBackend"]
     assert "Quelle:" in examples["verified reset guidance"]["agent"]
     assert examples["unknown code"]["tool"]["output"]["snippets"] == []
     assert examples["conflicting model meanings"]["state"] == "PENDING"

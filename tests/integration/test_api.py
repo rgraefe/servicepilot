@@ -155,6 +155,48 @@ def test_create_handover(client: TestClient) -> None:
     )
     assert response.status_code == 201
     assert response.json()["status"] == "queued"
+    assert response.json()["priority"] == "high"
+    assert response.json()["conversation_summary"] == "Recurring fault needs review."
+
+
+def test_handover_without_identity_and_idempotent_retry(client: TestClient) -> None:
+    payload = {
+        "handover_request_id": "HO-HUMAN-TEST-001",
+        "reason": "human_request",
+        "conversation_summary": "Customer explicitly requests a human.",
+        "context": {"last_tool": "get_ticket", "failure_count": 2},
+    }
+    first = client.post("/handover", json=payload)
+    retry = client.post("/handover", json=payload)
+
+    assert first.status_code == 201
+    assert retry.status_code == 201
+    assert retry.json() == first.json()
+    assert first.json()["customer_id"] is None
+    assert first.json()["priority"] == "normal"
+
+
+def test_handover_request_id_rejects_different_payload(client: TestClient) -> None:
+    request_id = "HO-CONFLICT-TEST-001"
+    first = client.post(
+        "/handover",
+        json={
+            "handover_request_id": request_id,
+            "reason": "human_request",
+            "conversation_summary": "First summary.",
+        },
+    )
+    conflict = client.post(
+        "/handover",
+        json={
+            "handover_request_id": request_id,
+            "reason": "human_request",
+            "conversation_summary": "Different summary.",
+        },
+    )
+
+    assert first.status_code == 201
+    assert_error(conflict, 409, "HANDOVER_REQUEST_CONFLICT")
 
 
 def test_handover_rejects_missing_ticket(client: TestClient) -> None:

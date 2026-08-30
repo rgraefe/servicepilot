@@ -140,7 +140,7 @@ def test_tools_are_bound_only_to_responsible_playbooks(catalog: dict) -> None:
     assert "${TOOL: ServicePilotBackend}" in instructions["AppointmentManagement"]
     assert "${TOOL:" not in instructions["DefaultService"]
     assert "${TOOL: ServicePilotKnowledge}" in instructions["KnowledgeSupport"]
-    assert "${TOOL:" not in instructions["ComplaintManagement"]
+    assert "${TOOL: ServicePilotBackend}" in instructions["ComplaintManagement"]
     tool_bindings = {
         playbook["name"]: playbook.get("tools", [])
         for playbook in catalog["playbooks"]
@@ -148,8 +148,11 @@ def test_tools_are_bound_only_to_responsible_playbooks(catalog: dict) -> None:
     assert tool_bindings["ServiceTicket"] == ["ServicePilotBackend"]
     assert tool_bindings["AppointmentManagement"] == ["ServicePilotBackend"]
     assert not tool_bindings["DefaultService"]
-    assert tool_bindings["KnowledgeSupport"] == ["ServicePilotKnowledge"]
-    assert not tool_bindings["ComplaintManagement"]
+    assert tool_bindings["KnowledgeSupport"] == [
+        "ServicePilotKnowledge",
+        "ServicePilotBackend",
+    ]
+    assert tool_bindings["ComplaintManagement"] == ["ServicePilotBackend"]
 
 
 def test_phase_six_binds_reschedule_flow_only_to_appointment_playbook(

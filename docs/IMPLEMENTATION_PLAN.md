@@ -199,6 +199,14 @@ Exit criterion:
 
 - handover payload contains structured context and conversation summary
 
+Implementation status: complete. `create_handover` is exposed through the
+authenticated backend tool and used by KnowledgeSupport, ServiceTicket,
+AppointmentManagement, and ComplaintManagement. Explicit human requests do not
+require a known identity. Known customer/ticket relationships remain validated;
+technical, complaint, repeated-failure, and human-request reasons are structured.
+Stable request IDs make safe retries idempotent, and only a canonical `queued`
+response permits the agent to report success.
+
 ---
 
 ## Phase 9 – Voice

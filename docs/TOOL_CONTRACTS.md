@@ -51,6 +51,7 @@ Dialogflow service-agent `ID_TOKEN`; the schema contains no credentials.
 | `get_appointments` | `GET /customers/{customer_id}/appointments` | AppointmentManagement |
 | `list_available_slots` | `GET /appointments/available-slots` | AppointmentManagement |
 | `reschedule_appointment` | `PUT /appointments/{appointment_id}` | Phase 6 `AppointmentReschedule` flow only |
+| `create_handover` | `POST /handover` | All specialist playbooks when an escalation condition is met |
 
 List operations return JSON arrays because they map directly to the FastAPI
 contracts. An empty array is a successful result with no matching records. Any
@@ -307,10 +308,16 @@ Input:
 
 ```json
 {
+  "handover_request_id": "HO-TECH-001",
   "customer_id": "C-10023",
   "reason": "technical_escalation",
-  "summary": "Customer reports recurring E37.",
-  "ticket_id": "T-9321"
+  "conversation_summary": "Customer reports recurring E37.",
+  "ticket_id": "T-9321",
+  "context": {
+    "device_model": "HeatPump-X200",
+    "error_code": "E37",
+    "failure_count": 2
+  }
 }
 ```
 
@@ -319,6 +326,38 @@ Output:
 ```json
 {
   "handover_id": "H-1001",
-  "status": "queued"
+  "handover_request_id": "HO-TECH-001",
+  "customer_id": "C-10023",
+  "reason": "technical_escalation",
+  "conversation_summary": "Customer reports recurring E37.",
+  "ticket_id": "T-9321",
+  "context": {
+    "device_model": "HeatPump-X200",
+    "error_code": "E37",
+    "failure_count": 2
+  },
+  "status": "queued",
+  "priority": "high"
 }
 ```
+
+`customer_id` and `ticket_id` are optional so an explicit human request is never
+blocked by missing identity. When supplied, customer existence, ticket existence,
+and ticket ownership are validated. Reasons are `human_request`,
+`technical_escalation`, `complaint`, and `repeated_failure`. Priority is backend
+derived: technical escalations and complaints are `high`; human requests and
+repeated failures are `normal`.
+
+`handover_request_id` is optional for ordinary API callers but required by the
+conversational contract. Reusing it with identical content returns the canonical
+existing handover. Reusing it with different content returns HTTP 409
+`HANDOVER_REQUEST_CONFLICT`. A timeout or unclear response may therefore be
+retried once only with the identical request ID and payload.
+
+Errors:
+
+- `CUSTOMER_NOT_FOUND`
+- `TICKET_NOT_FOUND`
+- `TICKET_NOT_OWNED_BY_CUSTOMER`
+- `HANDOVER_REQUEST_CONFLICT`
+- `PERSISTENCE_UNAVAILABLE`
