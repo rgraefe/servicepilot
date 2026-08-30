@@ -114,6 +114,26 @@ acceptance uses one persistent Dialogflow session, reviews final transcripts and
 24 kHz response audio, and verifies that voice never changes a backend business
 rule or bypasses confirmation.
 
+Phase 10 adds `conversation/golden_conversations.json` as a semantic replay
+corpus with more than 30 multi-event conversations. The deterministic runner
+checks route sequences against the routing contract, tool and flow ownership
+against the deployed catalog, exact confirmation before critical writes,
+canonical result requirements, bounded repeated-failure escalation, write
+counts, final state, and structured handover reasons. It deliberately does not
+emulate the LLM or compare natural-language wording.
+
+Run the Phase 10 corpus after every prompt, catalog, tool, or flow change:
+
+```powershell
+docker compose run --rm api pytest tests/conversation/test_golden_conversations.py
+```
+
+Negative mutation tests prove that the runner rejects an unconfirmed ticket
+write, a success claim after timeout, an early repeated-failure handover, and a
+tool used by the wrong playbook. Failure traces cover timeout, connection error,
+HTTP/provider error, malformed response, stale slot, duplicate submission,
+empty RAG, permission failure, and failed handover.
+
 ---
 
 ## Assertions

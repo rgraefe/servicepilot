@@ -205,6 +205,13 @@ correction, interruption, and latency guardrails remain in the shared catalog so
 chat and speech cannot diverge on transaction safety. See `docs/VOICE.md` for the
 streaming Docker client and acceptance scenarios.
 
+Phase 10 changes must also update the semantic corpus in
+`conversation/golden_conversations.json` when routing, tools, flows, failure
+behavior, or confirmation boundaries intentionally change. Run
+`docker compose run --rm api pytest tests/conversation/test_golden_conversations.py`
+before deployment. Golden traces assert semantic outcomes and write counts, not
+exact model prose.
+
 Google documentation:
 
 - [Playbooks](https://cloud.google.com/dialogflow/cx/docs/concept/playbook)

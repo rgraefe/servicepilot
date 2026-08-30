@@ -1,0 +1,449 @@
+{
+  "schema_version": 1,
+  "description": "Semantic Phase 10 regression traces. Agent wording is intentionally not asserted.",
+  "scenarios": [
+    {
+      "id": "ticket-status-known",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Welchen Status hat Ticket T-4711?", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_ticket"},
+        {"type": "tool_result", "kind": "success", "entity": {"ticket_id": "T-4711", "status": "technician_assigned"}},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_ticket"], "write_count": 0, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "technical-faq-cited",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Wo finde ich das Handbuch für die HeatPump-X200?", "expected_playbook": "KnowledgeSupport"},
+        {"type": "tool_call", "tool": "ServicePilotKnowledge", "action": "search_knowledge"},
+        {"type": "tool_result", "kind": "success", "entity": {"snippets": [{"title": "HeatPump-X200 Handbuch", "section": "Bedienung"}]}},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport"], "tool_sequence": ["search_knowledge"], "write_count": 0, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "known-error-code",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Meine Wärmepumpe zeigt Fehler E37.", "expected_playbook": "KnowledgeSupport"},
+        {"type": "tool_call", "tool": "ServicePilotKnowledge", "action": "search_knowledge"},
+        {"type": "tool_result", "kind": "success", "entity": {"snippets": [{"title": "Fehlercode-Leitfaden", "section": "E37"}]}},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport"], "tool_sequence": ["search_knowledge"], "write_count": 0, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "ticket-create-confirmed",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Bitte legt einen neuen Servicefall an.", "expected_playbook": "ServiceTicket"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_ticket"},
+        {"type": "tool_result", "kind": "success", "entity": {"ticket_id": "T-9001", "status": "open"}},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["create_ticket"], "write_count": 1, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "ticket-create-declined",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Ich möchte eine Störung melden.", "expected_playbook": "ServiceTicket"},
+        {"type": "confirmation", "value": "declined"},
+        {"type": "agent_outcome", "state": "cancelled", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": [], "write_count": 0, "final_state": "cancelled", "handover_reason": null}
+    },
+    {
+      "id": "appointment-lookup",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Wann kommt mein Techniker?", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_appointments"},
+        {"type": "tool_result", "kind": "success", "entity": [{"appointment_id": "A-0815", "status": "scheduled"}]},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["get_appointments"], "write_count": 0, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "appointment-reschedule-confirmed",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Ich möchte den Termin A-0815 verschieben.", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "list_available_slots"},
+        {"type": "tool_result", "kind": "success", "entity": [{"slot_id": "S-2001", "available": true}]},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "flow_call", "flow": "AppointmentReschedule"},
+        {"type": "tool_result", "kind": "success", "entity": {"appointment_id": "A-0815", "slot_id": "S-2001", "status": "scheduled"}},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["list_available_slots", "flow:AppointmentReschedule"], "write_count": 1, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "appointment-reschedule-declined",
+      "category": "happy_path",
+      "events": [
+        {"type": "user", "text": "Bitte meinen Termin verschieben.", "expected_playbook": "AppointmentManagement"},
+        {"type": "confirmation", "value": "declined"},
+        {"type": "agent_outcome", "state": "cancelled", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": [], "write_count": 0, "final_state": "cancelled", "handover_reason": null}
+    },
+    {
+      "id": "invalid-ticket-id",
+      "category": "invalid_identifier",
+      "events": [
+        {"type": "user", "text": "Wie ist der Stand von Ticket T-404?", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_ticket"},
+        {"type": "tool_result", "kind": "error", "error_code": "TICKET_NOT_FOUND"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_ticket"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "invalid-customer-id",
+      "category": "invalid_identifier",
+      "events": [
+        {"type": "user", "text": "Ich möchte eine Störung für C-99999 melden.", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_customer"},
+        {"type": "tool_result", "kind": "error", "error_code": "CUSTOMER_NOT_FOUND"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_customer"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "invalid-appointment-id",
+      "category": "invalid_identifier",
+      "events": [
+        {"type": "user", "text": "Bitte Termin A-404 prüfen.", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_appointments"},
+        {"type": "tool_result", "kind": "error", "error_code": "APPOINTMENT_NOT_FOUND"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["get_appointments"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "cross-customer-appointment",
+      "category": "permission_failure",
+      "events": [
+        {"type": "user", "text": "Zeigen Sie mir den Termin von Kunde C-10024.", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_appointments"},
+        {"type": "tool_result", "kind": "error", "error_code": "CUSTOMER_ACCESS_DENIED"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["get_appointments"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "unknown-error-code",
+      "category": "unknown_error_code",
+      "events": [
+        {"type": "user", "text": "Meine Wärmepumpe zeigt Fehler Z99.", "expected_playbook": "KnowledgeSupport"},
+        {"type": "tool_call", "tool": "ServicePilotKnowledge", "action": "search_knowledge"},
+        {"type": "tool_result", "kind": "success", "entity": {"snippets": []}},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport"], "tool_sequence": ["search_knowledge"], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "unavailable-appointment-slot",
+      "category": "unavailable_slot",
+      "events": [
+        {"type": "user", "text": "Ist morgen um zehn noch ein Slot frei?", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "list_available_slots"},
+        {"type": "tool_result", "kind": "error", "error_code": "APPOINTMENT_SLOT_UNAVAILABLE"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["list_available_slots"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "backend-timeout-ticket-read",
+      "category": "backend_timeout",
+      "events": [
+        {"type": "user", "text": "Bitte Ticket T-4711 prüfen.", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_ticket"},
+        {"type": "tool_result", "kind": "timeout"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_ticket"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "backend-500-appointment-read",
+      "category": "backend_500",
+      "events": [
+        {"type": "user", "text": "Welche Termine habe ich nächste Woche?", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_appointments"},
+        {"type": "tool_result", "kind": "error", "error_code": "INTERNAL_ERROR"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["get_appointments"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "backend-connection-error",
+      "category": "backend_connection",
+      "events": [
+        {"type": "user", "text": "Bitte Ticket T-4711 prüfen.", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_ticket"},
+        {"type": "tool_result", "kind": "connection_error"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_ticket"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "malformed-ticket-result",
+      "category": "malformed_result",
+      "events": [
+        {"type": "user", "text": "Welchen Status hat Ticket T-4711?", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_ticket"},
+        {"type": "tool_result", "kind": "malformed"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_ticket"], "write_count": 0, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "duplicate-ticket-submission",
+      "category": "duplicate_submission",
+      "events": [
+        {"type": "user", "text": "Bitte einen neuen Servicefall für E37 anlegen.", "expected_playbook": "ServiceTicket"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_ticket"},
+        {"type": "tool_result", "kind": "error", "error_code": "DUPLICATE_ACTIVE_TICKET"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["create_ticket"], "write_count": 1, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "ambiguous-reschedule-confirmation",
+      "category": "ambiguous_confirmation",
+      "events": [
+        {"type": "user", "text": "Ich möchte meinen Termin verschieben.", "expected_playbook": "AppointmentManagement"},
+        {"type": "confirmation", "value": "ambiguous"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "explicit-human-handover",
+      "category": "handover",
+      "events": [
+        {"type": "user", "text": "Ich will jetzt mit einem Menschen reden.", "expected_playbook": "ComplaintManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_handover", "reason": "human_request", "request_id": "HO-GOLDEN-HUMAN-001"},
+        {"type": "tool_result", "kind": "success", "entity": {"handover_id": "H-GOLDEN-001", "status": "queued"}},
+        {"type": "agent_outcome", "state": "escalated", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["ComplaintManagement"], "tool_sequence": ["create_handover"], "write_count": 1, "final_state": "escalated", "handover_reason": "human_request"}
+    },
+    {
+      "id": "complaint-handover",
+      "category": "handover",
+      "events": [
+        {"type": "user", "text": "Ich bin mit dem Service sehr unzufrieden.", "expected_playbook": "ComplaintManagement"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_handover", "reason": "complaint", "request_id": "HO-GOLDEN-COMPLAINT-001"},
+        {"type": "tool_result", "kind": "success", "entity": {"handover_id": "H-GOLDEN-002", "status": "queued"}},
+        {"type": "agent_outcome", "state": "escalated", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["ComplaintManagement"], "tool_sequence": ["create_handover"], "write_count": 1, "final_state": "escalated", "handover_reason": "complaint"}
+    },
+    {
+      "id": "technical-safety-handover",
+      "category": "handover",
+      "events": [
+        {"type": "user", "text": "Meine Wärmepumpe riecht verbrannt und zeigt Fehler E37.", "expected_playbook": "KnowledgeSupport"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_handover", "reason": "technical_escalation", "request_id": "HO-GOLDEN-TECH-001"},
+        {"type": "tool_result", "kind": "success", "entity": {"handover_id": "H-GOLDEN-003", "status": "queued"}},
+        {"type": "agent_outcome", "state": "escalated", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport"], "tool_sequence": ["create_handover"], "write_count": 1, "final_state": "escalated", "handover_reason": "technical_escalation"}
+    },
+    {
+      "id": "topic-switch-ticket-to-appointment",
+      "category": "topic_switch",
+      "events": [
+        {"type": "user", "text": "Welchen Status hat Ticket T-4711?", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_ticket"},
+        {"type": "tool_result", "kind": "success", "entity": {"ticket_id": "T-4711", "status": "open"}},
+        {"type": "user", "text": "Stattdessen möchte ich meinen Termin prüfen.", "expected_playbook": "AppointmentManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_appointments"},
+        {"type": "tool_result", "kind": "success", "entity": [{"appointment_id": "A-0815"}]},
+        {"type": "agent_outcome", "state": "success", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket", "AppointmentManagement"], "tool_sequence": ["get_ticket", "get_appointments"], "write_count": 0, "final_state": "success", "handover_reason": null}
+    },
+    {
+      "id": "topic-switch-knowledge-to-human",
+      "category": "topic_switch",
+      "events": [
+        {"type": "user", "text": "Was bedeutet Fehler E37?", "expected_playbook": "KnowledgeSupport"},
+        {"type": "user", "text": "Nein, verbinden Sie mich mit einem Mitarbeiter.", "expected_playbook": "ComplaintManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_handover", "reason": "human_request", "request_id": "HO-GOLDEN-SWITCH-001"},
+        {"type": "tool_result", "kind": "success", "entity": {"handover_id": "H-GOLDEN-004", "status": "queued"}},
+        {"type": "agent_outcome", "state": "escalated", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport", "ComplaintManagement"], "tool_sequence": ["create_handover"], "write_count": 1, "final_state": "escalated", "handover_reason": "human_request"}
+    },
+    {
+      "id": "repeated-ticket-failure-handover",
+      "category": "repeated_failure",
+      "events": [
+        {"type": "user", "text": "Bitte Ticket T-4711 prüfen.", "expected_playbook": "ServiceTicket"},
+        {"type": "failure", "kind": "timeout"},
+        {"type": "failure", "kind": "error"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_handover", "reason": "repeated_failure", "request_id": "HO-GOLDEN-REPEAT-001"},
+        {"type": "tool_result", "kind": "success", "entity": {"handover_id": "H-GOLDEN-005", "status": "queued"}},
+        {"type": "agent_outcome", "state": "escalated", "claims_success": true}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["create_handover"], "write_count": 1, "final_state": "escalated", "handover_reason": "repeated_failure"}
+    },
+    {
+      "id": "single-ticket-failure-no-handover",
+      "category": "repeated_failure",
+      "events": [
+        {"type": "user", "text": "Bitte Ticket T-4711 prüfen.", "expected_playbook": "ServiceTicket"},
+        {"type": "failure", "kind": "timeout"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "multiple-intents-complaint-priority",
+      "category": "multi_intent",
+      "events": [
+        {"type": "user", "text": "Das Ticket ist ungelöst und ich möchte mich beschweren.", "expected_playbook": "ComplaintManagement"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ComplaintManagement"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "multiple-intents-appointment-priority",
+      "category": "multi_intent",
+      "events": [
+        {"type": "user", "text": "Meine Anlage zeigt E37 und ich möchte wissen, ob der Techniker morgen kommt.", "expected_playbook": "AppointmentManagement"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "missing-device",
+      "category": "missing_data",
+      "events": [
+        {"type": "user", "text": "Ich möchte eine Störung melden.", "expected_playbook": "ServiceTicket"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "get_customer"},
+        {"type": "tool_result", "kind": "success", "entity": {"customer_id": "C-10023"}},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["get_customer"], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "device-customer-ownership-mismatch",
+      "category": "permission_failure",
+      "events": [
+        {"type": "user", "text": "Bitte einen Servicefall für mein Gerät anlegen.", "expected_playbook": "ServiceTicket"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_ticket"},
+        {"type": "tool_result", "kind": "error", "error_code": "DEVICE_OWNERSHIP_MISMATCH"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": ["create_ticket"], "write_count": 1, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "invalid-appointment-state",
+      "category": "invalid_state",
+      "events": [
+        {"type": "user", "text": "Bitte meinen stornierten Termin verschieben.", "expected_playbook": "AppointmentManagement"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "flow_call", "flow": "AppointmentReschedule"},
+        {"type": "tool_result", "kind": "error", "error_code": "INVALID_APPOINTMENT_STATE"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["flow:AppointmentReschedule"], "write_count": 1, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "rag-empty-result",
+      "category": "rag_failure",
+      "events": [
+        {"type": "user", "text": "Was sagt das Handbuch zu Fehler Q88?", "expected_playbook": "KnowledgeSupport"},
+        {"type": "tool_call", "tool": "ServicePilotKnowledge", "action": "search_knowledge"},
+        {"type": "tool_result", "kind": "success", "entity": {"snippets": []}},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport"], "tool_sequence": ["search_knowledge"], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "rag-conflicting-documents",
+      "category": "rag_failure",
+      "events": [
+        {"type": "user", "text": "Was bedeutet Fehler E37?", "expected_playbook": "KnowledgeSupport"},
+        {"type": "tool_call", "tool": "ServicePilotKnowledge", "action": "search_knowledge"},
+        {"type": "tool_result", "kind": "success", "entity": {"snippets": [{"model": "X200", "meaning": "flow"}, {"model": "X300", "meaning": "communication"}]}},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["KnowledgeSupport"], "tool_sequence": ["search_knowledge"], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "handover-creation-failure",
+      "category": "handover_failure",
+      "events": [
+        {"type": "user", "text": "Verbinden Sie mich mit einem Mitarbeiter.", "expected_playbook": "ComplaintManagement"},
+        {"type": "tool_call", "tool": "ServicePilotBackend", "action": "create_handover", "reason": "human_request", "request_id": "HO-GOLDEN-FAIL-001"},
+        {"type": "tool_result", "kind": "error", "error_code": "PERSISTENCE_UNAVAILABLE"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ComplaintManagement"], "tool_sequence": ["create_handover"], "write_count": 1, "final_state": "failed", "handover_reason": "human_request"}
+    },
+    {
+      "id": "reschedule-timeout-no-false-success",
+      "category": "backend_timeout",
+      "events": [
+        {"type": "user", "text": "Bitte meinen Termin verschieben.", "expected_playbook": "AppointmentManagement"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "flow_call", "flow": "AppointmentReschedule"},
+        {"type": "tool_result", "kind": "timeout"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["flow:AppointmentReschedule"], "write_count": 1, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "canonical-reschedule-mismatch",
+      "category": "malformed_result",
+      "events": [
+        {"type": "user", "text": "Bitte Termin A-0815 verschieben.", "expected_playbook": "AppointmentManagement"},
+        {"type": "confirmation", "value": "exact"},
+        {"type": "flow_call", "flow": "AppointmentReschedule"},
+        {"type": "tool_result", "kind": "malformed"},
+        {"type": "agent_outcome", "state": "failed", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["AppointmentManagement"], "tool_sequence": ["flow:AppointmentReschedule"], "write_count": 1, "final_state": "failed", "handover_reason": null}
+    },
+    {
+      "id": "ambiguous-ticket-confirmation",
+      "category": "ambiguous_confirmation",
+      "events": [
+        {"type": "user", "text": "Bitte legt ein Ticket an.", "expected_playbook": "ServiceTicket"},
+        {"type": "confirmation", "value": "ambiguous"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "identity-ambiguous-no-tool",
+      "category": "invalid_identifier",
+      "events": [
+        {"type": "user", "text": "Mein Ticket gehört vielleicht zu C-10023 oder C-10024.", "expected_playbook": "ServiceTicket"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["ServiceTicket"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    },
+    {
+      "id": "default-ambiguous-help",
+      "category": "ambiguous_request",
+      "events": [
+        {"type": "user", "text": "Ich brauche Hilfe.", "expected_playbook": "DefaultService"},
+        {"type": "agent_outcome", "state": "pending", "claims_success": false}
+      ],
+      "expected": {"route_sequence": ["DefaultService"], "tool_sequence": [], "write_count": 0, "final_state": "pending", "handover_reason": null}
+    }
+  ]
+}

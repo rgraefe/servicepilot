@@ -188,10 +188,21 @@ endpointing, TTS, barge-in policy and privacy defaults; the file-based reference
 client runs from the Compose development image. No voice-specific business API
 or secret is added.
 
+Phase 10 provides a repeatable semantic regression corpus in
+`conversation/golden_conversations.json`. More than 30 golden conversations
+exercise every playbook, deterministic write boundary, required failure mode,
+topic switching, and handover without asserting fragile response wording.
+
 Run the routing contract tests inside Docker:
 
 ```bash
 docker compose run --rm api pytest tests/conversation
+```
+
+Run only the Phase 10 regression and failure suite:
+
+```bash
+docker compose run --rm api pytest tests/conversation/test_golden_conversations.py
 ```
 
 After creating a playbook-first `ServicePilot` agent in `europe-west3`, deploy the

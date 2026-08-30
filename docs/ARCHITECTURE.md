@@ -336,3 +336,21 @@ identifiers require read-back confirmation, corrections replace stale values,
 and interruptions cannot bypass transaction confirmation. Audio retention and
 interaction logging are disabled by default. See `docs/VOICE.md` for deployment
 and acceptance instructions.
+
+---
+
+## 9. Conversation Regression Boundary
+
+Phase 10 keeps regression testing outside the runtime request path.
+`conversation/golden_conversations.json` records user, confirmation, tool/flow,
+result, failure-injection, and semantic outcome events. The dependency-free
+`conversation/regression_contract.py` replays those events against the current
+routing contract, catalog bindings, and deterministic rescheduling-flow safety
+settings.
+
+The replay layer is an executable safety oracle, not a chatbot simulator. It
+detects incorrect ownership, unconfirmed writes, false success, premature
+repeated-failure escalation, and changed write counts while allowing the
+generative agent to vary its wording. It runs entirely in Docker without Google
+credentials or cloud services; live simulator and voice acceptance remain
+separate deployment checks.
