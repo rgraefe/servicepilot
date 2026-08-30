@@ -198,6 +198,13 @@ not produce a success message.
 5. Run the simulator acceptance cases, including decline/no-write.
 6. Review Dialogflow validation warnings before promoting a new configuration.
 
+Phase 9 speech settings are deployed independently with
+`scripts/deploy-voice-agent.ps1`; they do not modify playbooks, flows, tools, or
+backend business logic. Voice-specific response, identifier-confirmation,
+correction, interruption, and latency guardrails remain in the shared catalog so
+chat and speech cannot diverge on transaction safety. See `docs/VOICE.md` for the
+streaming Docker client and acceptance scenarios.
+
 Google documentation:
 
 - [Playbooks](https://cloud.google.com/dialogflow/cx/docs/concept/playbook)

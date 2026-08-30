@@ -182,6 +182,12 @@ repeated-failure handovers with a neutral conversation summary and structured
 context. Missing identity does not block an explicit human request. Stable
 request IDs make an identical uncertain retry idempotent.
 
+Phase 9 adds German streaming speech input and synthesized speech output through
+the existing Dialogflow agent. `conversation/voice-profile.json` controls STT,
+endpointing, TTS, barge-in policy and privacy defaults; the file-based reference
+client runs from the Compose development image. No voice-specific business API
+or secret is added.
+
 Run the routing contract tests inside Docker:
 
 ```bash
@@ -207,10 +213,28 @@ Then apply the tool- and flow-aware playbook catalog:
 ./scripts/deploy-conversational-agent.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID
 ```
 
+Apply the Phase 9 speech profile:
+
+```powershell
+./scripts/deploy-voice-agent.ps1 -ProjectId servicepilot-development -Region europe-west3 -AgentId YOUR_AGENT_UUID
+```
+
+Run a multi-turn WAV session entirely with container dependencies (inputs must
+be 16-bit, mono, 16 kHz PCM):
+
+```powershell
+$accessToken = gcloud auth print-access-token
+docker compose run --rm -e GOOGLE_OAUTH_ACCESS_TOKEN=$accessToken api python scripts/voice-session.py --project servicepilot-development --region europe-west3 --agent-id YOUR_AGENT_UUID --input artifacts/voice/input-01.wav
+Remove-Variable accessToken
+```
+
 See [docs/CONVERSATIONAL_AGENT.md](docs/CONVERSATIONAL_AGENT.md) for one-time
 agent creation, authenticated tool deployment, routing acceptance cases, and the
 Phase 5/6 transaction boundary. Always deploy in the order shown above: tool,
 flow, then playbooks.
+
+See [docs/VOICE.md](docs/VOICE.md) for the speech policy, barge-in contract,
+Docker voice test, privacy defaults, and complete Phase 9 acceptance matrix.
 
 ### Managed knowledge / RAG
 

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "language_code": "de",
+  "input": {
+    "encoding": "AUDIO_ENCODING_LINEAR_16",
+    "sample_rate_hertz": 16000,
+    "channels": 1,
+    "chunk_duration_ms": 100,
+    "realtime_pacing": true
+  },
+  "recognition": {
+    "enable_speech_adaptation": true,
+    "model": "latest_short",
+    "endpointer_sensitivity": 40,
+    "no_speech_timeout_seconds": 8,
+    "use_timeout_based_endpointing": false
+  },
+  "output": {
+    "encoding": "OUTPUT_AUDIO_ENCODING_LINEAR_16",
+    "sample_rate_hertz": 24000,
+    "speaking_rate": 0.95,
+    "pitch": 0.0,
+    "volume_gain_db": 0.0
+  },
+  "privacy": {
+    "enable_stackdriver_logging": true,
+    "enable_interaction_logging": false,
+    "audio_export_enabled": false
+  },
+  "client_policy": {
+    "enable_partial_response": true,
+    "allow_barge_in": true,
+    "confirm_critical_identifiers": true,
+    "max_identifier_recognition_attempts": 2,
+    "backend_wait_message_after_ms": 1500
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "profile": "voice-profile.json",
+  "scenarios": [
+    {
+      "id": "normal-speech",
+      "category": "normal_speech",
+      "utterances": ["Wie ist der Stand von Ticket T-4711?"],
+      "expected": ["final_transcript", "spoken_response", "ServiceTicket"]
+    },
+    {
+      "id": "slow-speech",
+      "category": "slow_speech",
+      "utterances": ["Ich möchte meinen Technikertermin prüfen."],
+      "audio_fixture": "slow speech with natural gaps below the configured endpoint threshold",
+      "expected": ["one_complete_utterance", "AppointmentManagement"]
+    },
+    {
+      "id": "mid-utterance-pause",
+      "category": "pauses",
+      "utterances": ["Meine Wärmepumpe ... zeigt Fehler E37."],
+      "audio_fixture": "pause within the utterance without eight seconds of silence",
+      "expected": ["one_complete_utterance", "KnowledgeSupport"]
+    },
+    {
+      "id": "identifier-correction",
+      "category": "corrections",
+      "utterances": ["Meine Kunden-ID ist C-10022, Entschuldigung, C-10023."],
+      "expected": ["replace_stale_identifier", "confirm C-10023", "never use C-10022"]
+    },
+    {
+      "id": "barge-in-correction",
+      "category": "interruptions",
+      "utterances": ["Ich möchte einen Termin ändern.", "Nein, ich möchte nur prüfen, ob er noch steht."],
+      "events": [{"before_turn": 2, "type": "barge_in"}],
+      "expected": ["cancel_obsolete_output", "no_write", "AppointmentManagement"]
+    },
+    {
+      "id": "customer-id",
+      "category": "customer_ids",
+      "utterances": ["Meine Kunden-ID ist C-10023."],
+      "expected": ["confirm C-10023 before lookup"]
+    },
+    {
+      "id": "serial-number",
+      "category": "serial_numbers",
+      "utterances": ["Die Seriennummer ist H P X zweitausend Bindestrich A B sieben vier zwei neun."],
+      "expected": ["repeat identifier in groups", "require confirmation before use"]
+    },
+    {
+      "id": "backend-latency",
+      "category": "backend_latency",
+      "utterances": ["Bitte prüfen Sie Ticket T-4711."],
+      "simulated_backend_latency_ms": 2500,
+      "expected": ["short wait message", "no invented result", "final result only after tool response"]
+    },
+    {
+      "id": "recognition-failure-handover",
+      "category": "failure",
+      "utterances": ["[unverständlich]", "[unverständlich]"],
+      "expected": ["at most two identifier attempts", "offer human handover"]
+    }
+  ]
+}

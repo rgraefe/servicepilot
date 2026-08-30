@@ -105,6 +105,15 @@ priority, stable-request idempotency, conflicting retries, escalation after two
 consecutive failures, and the rule that a failed handover never produces a false
 success or invented handover number.
 
+Phase 9 contract tests validate the versioned German speech profile, privacy
+defaults, 16 kHz mono LINEAR16 input, chunking, session-ID safety, streaming
+detect-intent usage and the absence of business endpoints in the voice adapter.
+The acceptance catalog covers normal and slow speech, mid-utterance pauses,
+corrections, barge-in, customer IDs, serial numbers and backend latency. Live
+acceptance uses one persistent Dialogflow session, reviews final transcripts and
+24 kHz response audio, and verifies that voice never changes a backend business
+rule or bypasses confirmation.
+
 ---
 
 ## Assertions
@@ -118,6 +127,10 @@ Conversation tests should verify:
 - confirmation requirement
 - error handling path
 - handover path
+- final speech transcript and synthesized response
+- critical-identifier read-back and correction replacement
+- interruption cancellation without a write
+- latency response without an invented result
 - final response semantics
 
 Avoid asserting exact natural-language wording unless necessary.

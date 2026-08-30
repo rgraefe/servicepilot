@@ -322,3 +322,17 @@ Voice adds requirements beyond chat:
 - human transfer
 
 Agent business logic should remain reusable across chat and voice channels.
+
+Phase 9 implements this as a channel adapter rather than a second application
+service. `conversation/voice-profile.json` defines German STT, endpointing, TTS,
+privacy, and client policies. `scripts/voice-session.py` streams 16 kHz LINEAR16
+audio to the regional Dialogflow CX endpoint and receives both partial
+transcripts and 24 kHz LINEAR16 output. It preserves the same session across
+turns and carries playback duration in `BargeInConfig` for interruption tests.
+
+The Playbooks, deterministic appointment flow, authenticated backend tool,
+repositories, and guardrails are identical for text and speech. Spoken critical
+identifiers require read-back confirmation, corrections replace stale values,
+and interruptions cannot bypass transaction confirmation. Audio retention and
+interaction logging are disabled by default. See `docs/VOICE.md` for deployment
+and acceptance instructions.

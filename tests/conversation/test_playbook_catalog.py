@@ -23,7 +23,7 @@ def catalog() -> dict:
 
 
 def test_catalog_defines_phase_four_agent(catalog: dict) -> None:
-    assert catalog["schema_version"] == 3
+    assert catalog["schema_version"] == 4
     assert catalog["agent"] == {
         "display_name": "ServicePilot",
         "default_language_code": "de",
@@ -79,6 +79,10 @@ def test_guardrails_cover_business_critical_safety(catalog: dict) -> None:
         "eindeutigen bestätigung",
         "verfügbaren termine",
         "blind",
+        "gesprochene korrektur",
+        "unterbrechung",
+        "backend-latenz",
+        "akustisch zu bestätigen",
     ):
         assert concept in guardrails
 

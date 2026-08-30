@@ -23,6 +23,7 @@ services:
       - "${SERVICEPILOT_PORT:-8000}:8000"
     volumes:
       - ./app:/app/app
+      - ./artifacts:/app/artifacts
       - ./conversation:/app/conversation:ro
       - ./data:/app/data:ro
       - ./scripts:/app/scripts:ro

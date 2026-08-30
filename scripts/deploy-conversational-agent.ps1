@@ -75,12 +75,19 @@ function Invoke-DialogflowApi {
         catch {
             $details = $_.ErrorDetails.Message
             $isPropagationDelay = $details -match 'Referenced resource.*does not exist'
-            if ($isPropagationDelay -and $attempt -lt 5) {
-                Start-Sleep -Seconds (2 * $attempt)
+            $statusCode = $_.Exception.Response.StatusCode
+            $isRateLimit = $statusCode -eq 429 -or $details -match 'RATE_LIMIT_EXCEEDED|RESOURCE_EXHAUSTED'
+            if (($isPropagationDelay -or $isRateLimit) -and $attempt -lt 5) {
+                $delaySeconds = if ($isRateLimit) {
+                    [Math]::Min(15 * $attempt, 45)
+                }
+                else {
+                    2 * $attempt
+                }
+                Start-Sleep -Seconds $delaySeconds
                 continue
             }
 
-            $statusCode = $_.Exception.Response.StatusCode
             throw "Dialogflow API $Method request to '$Uri' failed ($statusCode): $details"
         }
     }

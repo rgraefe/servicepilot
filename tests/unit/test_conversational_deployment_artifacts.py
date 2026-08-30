@@ -36,6 +36,8 @@ def test_conversational_deployment_script_is_idempotent_and_scoped() -> None:
     assert "Dialogflow appends repeated actions during PATCH" in script
     assert 'Invoke-DialogflowApi -Method Delete -Uri "$endpoint/v3/$exampleName"' in script
     assert "Referenced resource.*does not exist" in script
+    assert "RATE_LIMIT_EXCEEDED|RESOURCE_EXHAUSTED" in script
+    assert "[Math]::Min(15 * $attempt, 45)" in script
     assert "SupportsShouldProcess" in script
 
 
@@ -72,3 +74,31 @@ def test_reschedule_flow_deployment_has_deterministic_write_boundary() -> None:
     assert "$definition.pages.verify.success_condition" in script
     assert "$definition.flow.outputs" in script
     assert ":train" in script
+
+
+def test_voice_deployment_uses_versioned_safe_speech_settings() -> None:
+    script = Path("scripts/deploy-voice-agent.ps1").read_text(encoding="utf-8")
+
+    assert "SupportsShouldProcess" in script
+    assert "print-access-token" in script
+    assert "speechToTextSettings" in script
+    assert "textToSpeechSettings" in script
+    assert "advancedSettings.speechSettings" in script
+    assert "enableInteractionLogging" in script
+    assert "voice-profile.json" in script
+    assert "service-account" not in script.casefold()
+    assert "api-key" not in script.casefold()
+
+
+def test_voice_session_is_streaming_and_keeps_business_logic_external() -> None:
+    script = Path("scripts/voice-session.py").read_text(encoding="utf-8")
+
+    assert "streaming_detect_intent" in script
+    assert "StreamingDetectIntentRequest" in script
+    assert "AudioInput(config=input_config)" in script
+    assert "enable_partial_response" in script
+    assert "GOOGLE_OAUTH_ACCESS_TOKEN" in script
+    assert "quota_project_id=quota_project_id" in script
+    assert "write_linear16_wav" in script
+    assert "/tickets" not in script
+    assert "/appointments" not in script

@@ -21,6 +21,9 @@ test = [
   "pytest>=8.3,<9.0",
   "pytest-asyncio>=0.24,<1.0",
 ]
+voice = [
+  "google-cloud-dialogflow-cx>=1.39,<2.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
