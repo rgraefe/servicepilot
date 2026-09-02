@@ -8,3 +8,6 @@ htmlcov/
 .credentials/
 credentials/
 artifacts/voice/
+# Local Codex and agent instructions
+/AGENTS.md
+/agents/
