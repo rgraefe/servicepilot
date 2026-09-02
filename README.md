@@ -5,6 +5,14 @@ transactions deterministic while integrating with Dialogflow CX through
 authenticated OpenAPI tools. It supports both application-scoped in-memory
 repositories and Google Cloud Firestore behind the same service-layer interfaces.
 
+Presentation and customer-IT material:
+
+- [Detailed demo guide](docs/DEMO_GUIDE.md) – preparation, commands, live scenes,
+  speaker script, optional writes, and recovery paths;
+- [Technical deep dive](docs/TECHNICAL_GUIDE.md) – component background,
+  architecture, data flows, IAM, operations, production gaps, and resolved
+  implementation issues.
+
 ## Prerequisites
 
 - Docker Desktop or Docker Engine with Docker Compose v2
