@@ -2,7 +2,11 @@
 
 ## `ServicePilotKnowledge`
 
-Dialogflow tool type: Data Store (`UNSTRUCTURED`). Input example:
+Dialogflow tool type: Data Store (`UNSTRUCTURED`) with document processing mode
+`CHUNKS`. The mode must match the layout-aware chunked Agent Search data store;
+omitting it falls back to legacy `DOCUMENTS` processing and can make Dialogflow
+return an empty search result even while direct Agent Search queries succeed.
+Input example:
 
 ```json
 {"requestBody": {"query": "HeatPump-X200 Fehler E37 sichere Erstmaßnahmen"}}
@@ -14,6 +18,12 @@ document title/source URI. Empty, fallback, or conflicting results never
 authorize a technical claim. For conflicts across models, KnowledgeSupport asks
 for the model. This tool performs no business transaction and is safe to retry
 once with a meaningfully corrected query.
+
+For model-dependent error-code questions, an explicit or previously verified
+model is a precondition for the tool call. KnowledgeSupport must not infer a
+model from the code, retrieval ranking, demo data, or the first result. If the
+model is missing, it asks for the exact model and ends the turn without calling
+the tool.
 
 ## General Rules
 

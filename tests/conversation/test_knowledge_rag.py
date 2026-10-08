@@ -68,11 +68,25 @@ def test_knowledge_playbook_covers_citation_unknown_and_conflict_paths() -> None
     assert "Welches Modell" in examples["conflicting model meanings"]["agent"]
 
 
+def test_knowledge_playbook_never_infers_model_before_retrieval() -> None:
+    catalog = json.loads((ROOT / "conversation" / "catalog.json").read_text(encoding="utf-8"))
+    playbook = next(item for item in catalog["playbooks"] if item["name"] == "KnowledgeSupport")
+    instructions = "\n".join(playbook["instructions"] + playbook["tool_use_rules"])
+    example = next(item for item in playbook["examples"] if item["name"] == "collect error context")
+
+    assert "Leite niemals ein Modell" in instructions
+    assert "rufe kein Wissenswerkzeug auf" in instructions
+    assert "tool" not in example
+    assert example["state"] == "PENDING"
+    assert "HeatPump-X200 oder HeatPump-X300" in example["agent"]
+
+
 def test_deployment_uses_layout_parser_and_ancestor_headings() -> None:
     script = (ROOT / "scripts" / "deploy-knowledge-rag.ps1").read_text(encoding="utf-8")
     assert "layoutParsingConfig" in script
     assert "includeAncestorHeadings=$true" in script
     assert "dataSchema='document'" in script
+    assert "documentProcessingMode='CHUNKS'" in script
     assert "ServicePilotKnowledge" in script
     acceptance = (ROOT / "scripts" / "test-knowledge-rag.ps1").read_text(encoding="utf-8")
     assert "snippetSpec" in acceptance

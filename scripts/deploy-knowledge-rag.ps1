@@ -96,6 +96,7 @@ $toolBody = @{
     dataStoreSpec=@{ dataStoreConnections=@(@{
         dataStoreType='UNSTRUCTURED'
         dataStore="projects/$projectNumber/locations/$DataStoreLocation/collections/default_collection/dataStores/$DataStoreId"
+        documentProcessingMode='CHUNKS'
     }) }
 }
 $tools = Invoke-GoogleApi 'Get' "$agentRoot/tools?pageSize=100"

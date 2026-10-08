@@ -549,6 +549,13 @@ Agent Search Data Store (eu)
 ServicePilotKnowledge Tool -> KnowledgeSupport
 ```
 
+Die Dialogflow-Verbindung setzt zusätzlich
+`documentProcessingMode=CHUNKS`. Diese Einstellung ist Teil des Vertrags
+zwischen Tool und Data Store: Der Store wird layoutbasiert in Chunks indexiert,
+also darf Dialogflow ihn nicht im älteren `DOCUMENTS`-Modus abfragen. Fehlt die
+Angabe, kann die direkte Agent-Search-Suche funktionieren, während der
+Dialogflow-Tool-Aufruf mit einem leeren Ergebnis endet.
+
 Der Layout Parser erkennt Titel, Überschriften, Listen und Textblöcke. Kleine
 Child-Chunks verbessern die Trefferpräzision; übernommene Parent-Überschriften
 bewahren den Abschnittskontext. Das entspricht einer hierarchischen Parent-/
