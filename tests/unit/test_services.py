@@ -58,3 +58,24 @@ async def test_missing_appointment_is_rejected() -> None:
     with pytest.raises(ServiceError) as captured:
         await service.get("A-404")
     assert captured.value.code == "APPOINTMENT_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_get_slot_returns_canonical_availability() -> None:
+    slot = await build_service().get_slot("C-10023", "S-101")
+
+    assert slot.slot_id == "S-101"
+    assert slot.available is True
+
+
+@pytest.mark.asyncio
+async def test_get_slot_rejects_unknown_customer_and_slot() -> None:
+    service = build_service()
+
+    with pytest.raises(ServiceError) as missing_customer:
+        await service.get_slot("C-404", "S-101")
+    assert missing_customer.value.code == "CUSTOMER_NOT_FOUND"
+
+    with pytest.raises(ServiceError) as missing_slot:
+        await service.get_slot("C-10023", "S-404")
+    assert missing_slot.value.code == "APPOINTMENT_SLOT_NOT_FOUND"

@@ -68,6 +68,9 @@ class InMemoryAppointmentRepository:
     async def get(self, appointment_id: str) -> Appointment | None:
         return self._items.get(appointment_id)
 
+    async def get_slot(self, slot_id: str) -> AppointmentSlot | None:
+        return self._slots.get(slot_id)
+
     async def list_for_customer(self, customer_id: str) -> list[Appointment]:
         return [item for item in self._items.values() if item.customer_id == customer_id]
 

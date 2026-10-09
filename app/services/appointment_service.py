@@ -26,6 +26,14 @@ class AppointmentService:
             raise not_found("customer", customer_id)
         return await self._appointments.list_for_customer(customer_id)
 
+    async def get_slot(self, customer_id: str, slot_id: str) -> AppointmentSlot:
+        if await self._customers.get(customer_id) is None:
+            raise not_found("customer", customer_id)
+        slot = await self._appointments.get_slot(slot_id)
+        if slot is None:
+            raise not_found("appointment_slot", slot_id)
+        return slot
+
     async def list_available_slots(
         self, customer_id: str, from_date: date, to_date: date
     ) -> list[AppointmentSlot]:

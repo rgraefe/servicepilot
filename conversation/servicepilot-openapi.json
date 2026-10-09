@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "ServicePilot Conversational Backend",
-    "version": "0.8.0",
+    "version": "0.8.2",
     "description": "Deterministic ServicePilot operations for Dialogflow CX. Business errors use non-2xx responses with a structured error envelope."
   },
   "servers": [
@@ -213,7 +213,84 @@
         }
       }
     },
+    "/appointments/slots/{slot_id}": {
+      "get": {
+        "operationId": "get_appointment_slot",
+        "summary": "Retrieve one canonical appointment slot",
+        "description": "Use after a customer selected an explicit slot ID. The customer ID must come from the canonical appointment. Availability, start, and end must be read from this response immediately before entering the reschedule flow.",
+        "parameters": [
+          {
+            "name": "slot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Identifier"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical slot, including current availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppointmentSlot"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      }
+    },
     "/appointments/{appointment_id}": {
+      "get": {
+        "operationId": "get_appointment",
+        "summary": "Retrieve one canonical appointment",
+        "description": "Use when the customer explicitly supplied an appointment ID. Never infer appointment status, time, customer, or device data from conversation text.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppointmentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical appointment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/PersistenceUnavailable"
+          }
+        }
+      },
       "put": {
         "operationId": "reschedule_appointment",
         "summary": "Perform one confirmed appointment reschedule",

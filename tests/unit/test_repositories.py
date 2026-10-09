@@ -46,6 +46,8 @@ async def test_slot_reservation_is_atomic() -> None:
         repository.reschedule("A-101", "S-200"),
     )
     assert sum(result is not None for result in results) == 1
+    assert await repository.get_slot("S-200") is not None
+    assert (await repository.get_slot("S-200")).available is False  # type: ignore[union-attr]
     released_slots = await repository.list_available_slots(
         datetime(2026, 1, 1, tzinfo=timezone.utc).date(),
         datetime(2026, 1, 1, tzinfo=timezone.utc).date(),

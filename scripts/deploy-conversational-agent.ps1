@@ -113,6 +113,15 @@ function New-PlaybookBody {
             steps = @($Definition.instructions | ForEach-Object { @{ text = $_ } })
         }
     }
+    if ($Definition.PSObject.Properties.Name -contains 'input_parameters') {
+        $body.inputParameterDefinitions = @($Definition.input_parameters | ForEach-Object {
+                @{
+                    name = $_.name
+                    description = $_.description
+                    typeSchema = @{ inlineSchema = @{ type = $_.type } }
+                }
+            })
+    }
     $referencedTools = @()
     if ($Definition.PSObject.Properties.Name -contains 'tools') {
         $referencedTools = @($Definition.tools | ForEach-Object {
@@ -205,6 +214,8 @@ function Test-PlaybookAlreadyCurrent {
     }
     $currentToolSet = (@($Current.referencedTools) | Sort-Object) -join "`n"
     $desiredToolSet = (@($Desired.referencedTools) | Sort-Object) -join "`n"
+    $currentInputDefinitions = @($Current.inputParameterDefinitions) | ConvertTo-Json -Depth 20 -Compress
+    $desiredInputDefinitions = @($Desired.inputParameterDefinitions) | ConvertTo-Json -Depth 20 -Compress
     $guidelinesMatch = (
         $Current.instruction.guidelines -eq $Desired.instruction.guidelines -or
         ($AllowMissingGuidelines -and [string]::IsNullOrWhiteSpace($Current.instruction.guidelines))
@@ -213,6 +224,7 @@ function Test-PlaybookAlreadyCurrent {
         $Current.goal -eq $Desired.goal -and
         $Current.playbookType -eq $Desired.playbookType -and
         $guidelinesMatch -and
+        $currentInputDefinitions -eq $desiredInputDefinitions -and
         $currentToolSet -eq $desiredToolSet
     )
 }
@@ -233,6 +245,11 @@ foreach ($definition in @($catalog.playbooks | Where-Object { -not $_.default })
             'instruction.steps',
             'playbookType'
         )
+        $desiredInputDefinitions = @($body.inputParameterDefinitions)
+        $currentInputDefinitions = @($playbookSnapshots[$definition.name].inputParameterDefinitions)
+        if ($desiredInputDefinitions.Count -gt 0 -or $currentInputDefinitions.Count -gt 0) {
+            $updateFields += 'inputParameterDefinitions'
+        }
         $desiredTools = @($body.referencedTools)
         $currentTools = @($playbookReferencedTools[$definition.name])
         $currentToolSet = ($currentTools | Sort-Object) -join "`n"
@@ -273,8 +290,48 @@ function Sync-PlaybookExamples {
         if ($null -ne $example.agent_before_user) {
             $actions += @{ agentUtterance = @{ text = $example.agent_before_user } }
         }
-        $actions += @{ userUtterance = @{ text = $example.user } }
-        if ($null -ne $example.route_to) {
+        if ($null -ne $example.user) {
+            $actions += @{ userUtterance = @{ text = $example.user } }
+        }
+        if ($null -ne $example.steps) {
+            foreach ($step in @($example.steps)) {
+                if ($null -ne $step.tool) {
+                    $toolResource = $toolResources[$step.tool.name]
+                    if ([string]::IsNullOrWhiteSpace($toolResource)) {
+                        throw "Example '$($example.name)' references unknown tool '$($step.tool.name)'."
+                    }
+                    $outputParameterName = "$($step.tool.action) output"
+                    $outputActionParameters = @{}
+                    $outputActionParameters[$outputParameterName] = $step.tool.output
+                    $actions += @{
+                        toolUse = @{
+                            tool = $toolResource
+                            action = $step.tool.action
+                            inputActionParameters = $step.tool.input
+                            outputActionParameters = $outputActionParameters
+                        }
+                    }
+                }
+                elseif ($null -ne $step.flow) {
+                    $flowResource = $flowResources[$step.flow.name]
+                    if ([string]::IsNullOrWhiteSpace($flowResource)) {
+                        throw "Example '$($example.name)' references unknown flow '$($step.flow.name)'."
+                    }
+                    $actions += @{
+                        flowInvocation = @{
+                            flow = $flowResource
+                            inputActionParameters = $step.flow.input
+                            outputActionParameters = $step.flow.output
+                            flowState = "OUTPUT_STATE_$($example.state)"
+                        }
+                    }
+                }
+                else {
+                    throw "Example '$($example.name)' contains an unsupported sequence step."
+                }
+            }
+        }
+        elseif ($null -ne $example.route_to) {
             $target = $playbookResources[$example.route_to]
             if ([string]::IsNullOrWhiteSpace($target)) {
                 throw "Example '$($example.name)' references unknown playbook '$($example.route_to)'."
@@ -283,8 +340,14 @@ function Sync-PlaybookExamples {
                 playbook = $target
                 playbookState = "OUTPUT_STATE_$($example.state)"
             }
-            if ($null -ne $example.summary) {
-                $invocation.playbookInput = @{ precedingConversationSummary = $example.summary }
+            if ($null -ne $example.summary -or $null -ne $example.route_parameters) {
+                $invocation.playbookInput = @{}
+                if ($null -ne $example.summary) {
+                    $invocation.playbookInput.precedingConversationSummary = $example.summary
+                }
+                if ($null -ne $example.route_parameters) {
+                    $invocation.playbookInput.actionParameters = $example.route_parameters
+                }
             }
             if ($null -ne $example.output_summary) {
                 $invocation.playbookOutput = @{ executionSummary = $example.output_summary }
@@ -344,9 +407,13 @@ function Sync-PlaybookExamples {
         if ($null -ne $example.output_summary) {
             $exampleBody.playbookOutput = @{ executionSummary = $example.output_summary }
         }
-        if ($null -ne $example.input_summary) {
-            $exampleBody.playbookInput = @{
-                precedingConversationSummary = $example.input_summary
+        if ($null -ne $example.input_summary -or $null -ne $example.input_parameters) {
+            $exampleBody.playbookInput = @{}
+            if ($null -ne $example.input_summary) {
+                $exampleBody.playbookInput.precedingConversationSummary = $example.input_summary
+            }
+            if ($null -ne $example.input_parameters) {
+                $exampleBody.playbookInput.actionParameters = $example.input_parameters
             }
         }
 

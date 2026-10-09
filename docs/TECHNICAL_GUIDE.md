@@ -409,7 +409,7 @@ ServicePilot trennt:
 | DefaultService | Begrüßung, Klärung, Routing, Multi-Intent-Priorität |
 | KnowledgeSupport | Handbuch, FAQ, Garantie, Fehlercodes |
 | ServiceTicket | Ticketlesen und bestätigte Ticketanlage |
-| AppointmentManagement | Terminlesen, Slots, Übergabe an Transaction Flow |
+| AppointmentManagement | Einzeltermin- oder Kunden-Terminlesen, Slots, Übergabe an Transaction Flow |
 | ComplaintManagement | Beschwerde und menschliche Übergabe |
 
 `DefaultService` führt keine Backend-Operation aus. Er klassifiziert das gesamte
@@ -740,6 +740,7 @@ Audit-Log-Retention, Security Monitoring und kundenspezifische SIEM-Anbindung.
 | POST | `/tickets` | validierte Ticketanlage |
 | GET | `/appointments/{appointment_id}` | Termin |
 | GET | `/appointments/available-slots` | freie Slots im Zeitraum |
+| GET | `/appointments/slots/{slot_id}` | kanonischen Slot samt aktueller Verfügbarkeit lesen |
 | PUT | `/appointments/{appointment_id}` | bestätigte Verschiebung |
 | POST | `/handover` | strukturierte Übergabe |
 
@@ -787,8 +788,8 @@ kanonische Zustand erneut gelesen werden.
 
 ```text
 1. Nutzer: „Status von T-4711?“
-2. DefaultService -> ServiceTicket
-3. ServiceTicket -> ServicePilotBackend.get_ticket(T-4711)
+2. DefaultService -> ServiceTicket mit strukturiertem Input `ticket_id=T-4711`
+3. ServiceTicket ruft im selben Turn ServicePilotBackend.get_ticket(T-4711) auf
 4. Dialogflow erzeugt ID-Token für Cloud-Run-Audience
 5. Cloud Run IAM prüft roles/run.invoker
 6. FastAPI validiert Identifier
@@ -796,7 +797,7 @@ kanonische Zustand erneut gelesen werden.
 8. Firestore liest Dokument tickets/T-4711
 9. Pydantic validiert kanonisches Dokument
 10. JSON 200 an Tool
-11. Agent nennt ausschließlich zurückgegebenen Status
+11. Agent nennt ausschließlich zurückgegebenen Status in genau einer Antwort
 ```
 
 Bei 404 endet der Pfad ohne Statusbehauptung.
@@ -817,8 +818,8 @@ Bei 404 endet der Pfad ohne Statusbehauptung.
 ## 6.3 Terminverschiebung
 
 ```text
-1. AppointmentManagement liest Kundentermine
-2. AppointmentManagement liest verfügbare Slots
+1. AppointmentManagement liest den kanonischen Termin
+2. AppointmentManagement liest den ausgewählten Slot erneut und prüft `available=true`
 3. Kunde wählt genau einen Slot
 4. Playbook übergibt kanonische Alt-/Neudaten an AppointmentReschedule Flow
 5. Flow zeigt exakten Vorschlag
@@ -836,6 +837,21 @@ Bei 404 endet der Pfad ohne Statusbehauptung.
 
 Timeout, No-Match, Abbruch oder Response-Mismatch führen nicht zu einer
 Erfolgsmeldung.
+
+Bei einer reinen Statusfrage mit expliziter Termin-ID übergibt `DefaultService`
+die ID als strukturierten Parameter an `AppointmentManagement`. Das Playbook
+ruft im selben Turn `get_appointment` auf und antwortet ausschließlich mit dem
+kanonischen Backend-Status. Weitere Anliegen derselben Nachricht, etwa E37,
+bleiben in der Übergabezusammenfassung erhalten, verzögern aber die eindeutige
+Terminprüfung nicht.
+
+Nennt der Nutzer bereits Termin- und Slot-ID, werden beide als strukturierte
+Playbook-Parameter übergeben. `AppointmentManagement` darf weder die behauptete
+Verfügbarkeit noch Zeiten aus einem Beispiel übernehmen. Es ruft zuerst
+`get_appointment` und danach mit der dort gelesenen `customer_id`
+`get_appointment_slot` auf. Nur bei einem geplanten Termin und einem aktuell
+freien Slot startet es den Flow. Die sichtbare Bestätigungsfrage stammt damit
+von der Confirmation Page des Flows und nicht vom generativen Playbook.
 
 ## 6.4 Handover
 

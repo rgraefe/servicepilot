@@ -23,6 +23,13 @@ async def list_available_slots(
     )
 
 
+@router.get("/slots/{slot_id}", response_model=AppointmentSlot)
+async def get_appointment_slot(
+    slot_id: str, customer_id: str, container: Container
+) -> AppointmentSlot:
+    return await container.appointments.get_slot(customer_id, slot_id)
+
+
 @router.get("/{appointment_id}", response_model=Appointment)
 async def get_appointment(appointment_id: str, container: Container) -> Appointment:
     return await container.appointments.get(appointment_id)

@@ -109,6 +109,10 @@ def test_all_example_routes_reference_known_playbooks(catalog: dict) -> None:
                 assert isinstance(example["flow"]["input"], dict)
                 assert isinstance(example["flow"]["output"], dict)
                 assert example.get("agent")
+            elif "steps" in example:
+                assert len(example["steps"]) >= 2
+                assert all(set(step) <= {"tool", "flow"} for step in example["steps"])
+                assert all(len(step) == 1 for step in example["steps"])
             else:
                 assert example.get("agent")
 
@@ -185,13 +189,24 @@ def test_phase_five_tool_examples_cover_reads_writes_and_errors(catalog: dict) -
         for example in playbook["examples"]
         if "tool" in example
     ]
-    actions = {example["tool"]["action"] for example in tool_examples}
+    sequence_tools = [
+        step["tool"]
+        for playbook in catalog["playbooks"]
+        for example in playbook["examples"]
+        for step in example.get("steps", [])
+        if "tool" in step
+    ]
+    actions = {example["tool"]["action"] for example in tool_examples} | {
+        tool["action"] for tool in sequence_tools
+    }
 
     assert {
         "get_customer",
         "get_ticket",
         "create_ticket",
         "get_appointments",
+        "get_appointment",
+        "get_appointment_slot",
         "list_available_slots",
     } <= actions
     assert any("error" in example["tool"]["output"] for example in tool_examples)
@@ -207,7 +222,147 @@ def test_phase_five_tool_examples_cover_reads_writes_and_errors(catalog: dict) -
         item for item in catalog["playbooks"] if item["name"] == "AppointmentManagement"
     )
     assert "niemals direkt" in " ".join(appointment["instructions"])
-    flow_example = next(
-        example for example in appointment["examples"] if "flow" in example
+    sequence_example = next(
+        example for example in appointment["examples"] if "steps" in example
     )
-    assert flow_example["flow"]["output"]["reschedule_outcome"] == "succeeded"
+    actions = [
+        step["tool"]["action"] if "tool" in step else f"flow:{step['flow']['name']}"
+        for step in sequence_example["steps"]
+    ]
+    assert actions == [
+        "get_appointment",
+        "get_appointment_slot",
+        "flow:AppointmentReschedule",
+    ]
+
+
+def test_ticket_status_is_structured_and_executes_without_acknowledgement_turn(
+    catalog: dict,
+) -> None:
+    default = next(item for item in catalog["playbooks"] if item["name"] == "DefaultService")
+    service_ticket = next(
+        item for item in catalog["playbooks"] if item["name"] == "ServiceTicket"
+    )
+    route = next(
+        example for example in default["examples"] if example["name"] == "route ticket status"
+    )
+    retrieval = next(
+        example
+        for example in service_ticket["examples"]
+        if example["name"] == "retrieve routed ticket status"
+    )
+    unknown_retrieval = next(
+        example
+        for example in service_ticket["examples"]
+        if example["name"] == "routed unknown ticket"
+    )
+
+    assert service_ticket["input_parameters"] == [
+        {
+            "name": "ticket_id",
+            "type": "STRING",
+            "description": (
+                "Exact ticket identifier explicitly supplied by the customer, for example "
+                "T-4711. Empty when no ticket identifier is known."
+            ),
+        }
+    ]
+    assert route["route_parameters"] == {"ticket_id": "T-4711"}
+    assert retrieval["input_parameters"] == {"ticket_id": "T-4711"}
+    assert retrieval["input_summary"]
+    assert "user" not in retrieval
+    assert retrieval["tool"]["action"] == "get_ticket"
+    assert retrieval["state"] == "PENDING"
+    assert unknown_retrieval["state"] == "PENDING"
+    instructions = " ".join(service_ticket["instructions"])
+    assert "antworte nicht mit einer Ankündigung" in instructions
+    assert "im selben Turn genau einmal" in instructions
+    assert "genau eine Kundenantwort" in instructions
+
+
+def test_appointment_id_is_structured_and_executes_without_clarification(
+    catalog: dict,
+) -> None:
+    default = next(item for item in catalog["playbooks"] if item["name"] == "DefaultService")
+    appointment = next(
+        item for item in catalog["playbooks"] if item["name"] == "AppointmentManagement"
+    )
+    route = next(
+        example for example in default["examples"] if example["name"] == "route multiple requests"
+    )
+    retrieval = next(
+        example
+        for example in appointment["examples"]
+        if example["name"] == "retrieve routed appointment with additional issue"
+    )
+
+    assert appointment["input_parameters"] == [
+        {
+            "name": "appointment_id",
+            "type": "STRING",
+            "description": (
+                "Exact appointment identifier explicitly supplied by the customer, for "
+                "example A-0815. Empty when no appointment identifier is known."
+            ),
+        },
+        {
+            "name": "slot_id",
+            "type": "STRING",
+            "description": (
+                "Exact appointment-slot identifier explicitly supplied by the customer, "
+                "for example S-101. Empty when no slot identifier is known."
+            ),
+        },
+    ]
+    assert route["route_parameters"] == {"appointment_id": "A-0815"}
+    assert "E37" in route["summary"]
+    assert retrieval["input_parameters"] == {"appointment_id": "A-0815"}
+    assert retrieval["input_summary"]
+    assert "user" not in retrieval
+    assert retrieval["tool"]["action"] == "get_appointment"
+    assert retrieval["state"] == "PENDING"
+    instructions = " ".join(appointment["instructions"])
+    assert "antworte nicht mit einer Ankündigung oder Rückfrage" in instructions
+    assert "im selben Turn genau einmal" in instructions
+    assert "zusätzliche Anliegen wie E37" in instructions
+
+
+def test_exact_reschedule_reads_canonical_records_before_flow(catalog: dict) -> None:
+    default = next(item for item in catalog["playbooks"] if item["name"] == "DefaultService")
+    appointment = next(
+        item for item in catalog["playbooks"] if item["name"] == "AppointmentManagement"
+    )
+    route = next(
+        example for example in default["examples"] if example["name"] == "route exact reschedule"
+    )
+    sequence = next(
+        example
+        for example in appointment["examples"]
+        if example["name"] == "verify exact reschedule and enter deterministic flow"
+    )
+
+    assert route["route_parameters"] == {
+        "appointment_id": "A-0815",
+        "slot_id": "S-101",
+    }
+    assert sequence["input_parameters"] == route["route_parameters"]
+    assert "user" not in sequence
+    assert [next(iter(step)) for step in sequence["steps"]] == [
+        "tool",
+        "tool",
+        "flow",
+    ]
+    assert sequence["steps"][0]["tool"]["action"] == "get_appointment"
+    assert sequence["steps"][1]["tool"]["action"] == "get_appointment_slot"
+    assert sequence["steps"][1]["tool"]["output"]["available"] is True
+    assert sequence["steps"][2]["flow"]["name"] == "AppointmentReschedule"
+    assert sequence["state"] == "OK"
+    assert sequence["steps"][2]["flow"]["output"]["reschedule_outcome"] == "succeeded"
+    instructions = " ".join(appointment["instructions"])
+    assert "Benutzerbehauptung, der Slot sei frei" in instructions
+    assert "ohne eigene Bestätigungsfrage" in instructions
+    assert "Der Flow allein" in instructions
+    assert "unmittelbar nächste Aktion zwingend" in instructions
+    assert "frage insbesondere nicht selbst 'Ist das korrekt?'" in instructions
+    tool_rules = " ".join(appointment["tool_use_rules"])
+    assert "Bestätigungsfrage aus AppointmentManagement ist verboten" in tool_rules

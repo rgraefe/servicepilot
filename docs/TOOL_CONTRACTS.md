@@ -59,7 +59,9 @@ Dialogflow service-agent `ID_TOKEN`; the schema contains no credentials.
 | `get_ticket` | `GET /tickets/{ticket_id}` | ServiceTicket |
 | `create_ticket` | `POST /tickets` | ServiceTicket after explicit confirmation |
 | `get_appointments` | `GET /customers/{customer_id}/appointments` | AppointmentManagement |
+| `get_appointment` | `GET /appointments/{appointment_id}` | AppointmentManagement |
 | `list_available_slots` | `GET /appointments/available-slots` | AppointmentManagement |
+| `get_appointment_slot` | `GET /appointments/slots/{slot_id}` | AppointmentManagement before reschedule flow |
 | `reschedule_appointment` | `PUT /appointments/{appointment_id}` | Phase 6 `AppointmentReschedule` flow only |
 | `create_handover` | `POST /handover` | All specialist playbooks when an escalation condition is met |
 
@@ -123,6 +125,14 @@ Output:
 ---
 
 ## get_ticket
+
+`DefaultService` passes an explicitly supplied ticket identifier to
+`ServiceTicket` as the structured `ticket_id` playbook input. When this input is
+present, `ServiceTicket` calls `get_ticket` in the same conversation turn. It
+must not insert an acknowledgement-only turn, call the operation twice, or add
+a second response after the canonical result. The task remains active after the
+single response so a ticket correction or direct follow-up stays with the
+specialist instead of returning control to the parent in the same turn.
 
 Input:
 
@@ -212,6 +222,42 @@ Errors:
 
 ---
 
+## get_appointment
+
+Input:
+
+```json
+{
+  "appointment_id": "A-0815"
+}
+```
+
+HTTP/tool output:
+
+```json
+{
+  "appointment_id": "A-0815",
+  "customer_id": "C-10023",
+  "device_id": "D-1007",
+  "status": "scheduled",
+  "start": "2026-09-02T10:00:00+02:00",
+  "end": "2026-09-02T11:00:00+02:00",
+  "slot_id": "S-100"
+}
+```
+
+The action is read-only and is used only when the customer explicitly supplied
+the appointment identifier. Status and time must be taken from this canonical
+response, never from conversation text.
+
+Errors:
+
+- APPOINTMENT_NOT_FOUND
+- VALIDATION_ERROR
+- PERSISTENCE_UNAVAILABLE
+
+---
+
 ## list_available_slots
 
 Input:
@@ -236,6 +282,43 @@ HTTP/tool output:
   }
 ]
 ```
+
+---
+
+## get_appointment_slot
+
+Input:
+
+```json
+{
+  "slot_id": "S-101",
+  "customer_id": "C-10023"
+}
+```
+
+HTTP/tool output:
+
+```json
+{
+  "slot_id": "S-101",
+  "start": "2026-09-09T14:00:00+02:00",
+  "end": "2026-09-09T15:00:00+02:00",
+  "available": true
+}
+```
+
+`customer_id` must come from the canonical appointment response. This read is
+required when a customer supplies only a slot identifier: the identifier alone
+does not prove that the slot exists, is available, or has the dates remembered
+by an example. An unavailable slot is returned with `available=false`; the
+playbook must not invoke the reschedule flow in that case.
+
+Errors:
+
+- APPOINTMENT_SLOT_NOT_FOUND
+- CUSTOMER_NOT_FOUND
+- VALIDATION_ERROR
+- PERSISTENCE_UNAVAILABLE
 
 ---
 
@@ -283,8 +366,9 @@ in deterministic service code rather than inferred by a caller.
 
 ### Phase 6 flow mapping
 
-AppointmentManagement first retrieves the canonical appointment and currently
-available slots through read-only tool actions. It passes `customer_id`,
+AppointmentManagement first retrieves the canonical appointment and the
+selected slot through read-only `get_appointment` and `get_appointment_slot`
+actions. A date-range search may instead begin with `list_available_slots`. It passes `customer_id`,
 `appointment_id`, the current start/end, and the selected slot's ID and
 start/end to `AppointmentReschedule`.
 

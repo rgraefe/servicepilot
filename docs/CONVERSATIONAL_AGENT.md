@@ -181,7 +181,9 @@ Then use the Dialogflow simulator with a new session for each representative cas
 | `Ich brauche Hilfe.` | DefaultService asks one clarification question |
 
 AppointmentManagement may retrieve only canonical appointments and available
-slots. It passes the selected values to `AppointmentReschedule` and never calls
+slots. For an explicitly named slot it reads both the appointment and the slot
+again immediately before entering the flow; a user's claim that a slot is free
+is not trusted. It passes the selected values to `AppointmentReschedule` and never calls
 the rescheduling action generatively. The flow presents the current appointment
 and exact proposed slot, accepts only its explicit confirmation intent, performs
 one write, and reports success only after the canonical backend response matches.

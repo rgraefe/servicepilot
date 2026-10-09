@@ -107,6 +107,11 @@ def test_invalid_ticket_input_uses_error_contract(client: TestClient) -> None:
 
 
 def test_available_slots_and_reschedule(client: TestClient) -> None:
+    canonical_slot = client.get(
+        "/appointments/slots/S-101", params={"customer_id": "C-10023"}
+    )
+    assert canonical_slot.status_code == 200
+    assert canonical_slot.json()["available"] is True
     slots = client.get(
         "/appointments/available-slots",
         params={
@@ -128,6 +133,23 @@ def test_available_slots_and_reschedule(client: TestClient) -> None:
         json={"customer_id": "C-10023", "slot_id": "S-101", "confirmed": True},
     )
     assert_error(retry, 409, "SLOT_UNAVAILABLE")
+    no_longer_available = client.get(
+        "/appointments/slots/S-101", params={"customer_id": "C-10023"}
+    )
+    assert no_longer_available.json()["available"] is False
+
+
+def test_get_appointment_slot_has_structured_errors(client: TestClient) -> None:
+    assert_error(
+        client.get("/appointments/slots/S-404", params={"customer_id": "C-10023"}),
+        404,
+        "APPOINTMENT_SLOT_NOT_FOUND",
+    )
+    assert_error(
+        client.get("/appointments/slots/S-101", params={"customer_id": "C-404"}),
+        404,
+        "CUSTOMER_NOT_FOUND",
+    )
 
 
 def test_reschedule_requires_confirmation_and_ownership(client: TestClient) -> None:

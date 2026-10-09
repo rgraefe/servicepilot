@@ -26,6 +26,13 @@ def test_conversational_deployment_script_is_idempotent_and_scoped() -> None:
     assert "outputActionParameters" in script
     assert 'outputParameterName = "$($example.tool.action) output"' in script
     assert "agent_before_user" in script
+    assert "inputParameterDefinitions" in script
+    assert "inputParameterDefinitions'" in script
+    assert "route_parameters" in script
+    assert "$example.steps" in script
+    assert "unsupported sequence step" in script
+    assert "actionParameters" in script
+    assert "if ($null -ne $example.user)" in script
     assert "flows?pageSize=100" in script
     assert "AppointmentReschedule is missing" in script
     assert "flowInvocation" in script

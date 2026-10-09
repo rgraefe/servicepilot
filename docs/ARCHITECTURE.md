@@ -80,6 +80,7 @@ Examples:
 - list_customer_tickets
 - create_ticket
 - get_appointment
+- get_appointment_slot
 - list_customer_appointments
 - list_available_slots
 - reschedule_appointment
@@ -95,7 +96,8 @@ No bearer token, API key, service-account key, or application secret is stored i
 the agent configuration.
 
 ServiceTicket may use `get_customer`, `get_ticket`, and `create_ticket`.
-AppointmentManagement may use `get_appointments` and `list_available_slots`.
+AppointmentManagement may use `get_appointment`, `get_appointments`,
+`get_appointment_slot`, and `list_available_slots`.
 Although `reschedule_appointment` is described in the OpenAPI tool, the generative
 playbook is explicitly forbidden from calling it. The Phase 6
 `AppointmentReschedule` CX Flow is the sole conversational caller. Its flexible

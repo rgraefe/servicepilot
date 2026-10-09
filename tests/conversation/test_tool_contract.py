@@ -10,7 +10,9 @@ EXPECTED_OPERATIONS = {
     "get_ticket": ("/tickets/{ticket_id}", "get"),
     "create_ticket": ("/tickets", "post"),
     "get_appointments": ("/customers/{customer_id}/appointments", "get"),
+    "get_appointment": ("/appointments/{appointment_id}", "get"),
     "list_available_slots": ("/appointments/available-slots", "get"),
+    "get_appointment_slot": ("/appointments/slots/{slot_id}", "get"),
     "reschedule_appointment": ("/appointments/{appointment_id}", "put"),
     "create_handover": ("/handover", "post"),
 }

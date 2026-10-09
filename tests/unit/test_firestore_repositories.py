@@ -191,3 +191,19 @@ async def test_firestore_available_slots_filters_date_range() -> None:
         date(2026, 9, 1), date(2026, 9, 30)
     )
     assert slots == [inside]
+
+
+@pytest.mark.asyncio
+async def test_firestore_get_slot_returns_canonical_record() -> None:
+    slot = AppointmentSlot(
+        slot_id="S-101",
+        start=datetime(2026, 9, 2, 10, tzinfo=timezone.utc),
+        end=datetime(2026, 9, 2, 11, tzinfo=timezone.utc),
+    )
+    client = FakeClient(
+        {"appointment_slots": {"S-101": slot.model_dump(mode="python")}}
+    )
+    repository = FirestoreAppointmentRepository(client)  # type: ignore[arg-type]
+
+    assert await repository.get_slot("S-101") == slot
+    assert await repository.get_slot("S-404") is None

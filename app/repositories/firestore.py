@@ -106,6 +106,11 @@ class FirestoreAppointmentRepository:
             Appointment, await self._appointments.document(appointment_id).get()
         )
 
+    async def get_slot(self, slot_id: str) -> AppointmentSlot | None:
+        return _model_from_snapshot(
+            AppointmentSlot, await self._slots.document(slot_id).get()
+        )
+
     async def list_for_customer(self, customer_id: str) -> list[Appointment]:
         query = self._appointments.where(
             filter=FieldFilter("customer_id", "==", customer_id)
